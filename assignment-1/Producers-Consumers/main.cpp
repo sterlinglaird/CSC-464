@@ -5,10 +5,17 @@
 #include <mutex>
 #include <condition_variable>
 
+/*
+TODO
+Need to make cout thread safe and say which thread did what
+*/
+
 typedef int event;
 
+//Does not work when buffer size is 1 because of the way I defined "empty" and "full"
 const unsigned int BUFFER_SIZE = 20;
 const unsigned int SEED = 1000;
+const unsigned int MAX_WAIT_TIME = 500;
 
 class Buffer {
 
@@ -17,7 +24,6 @@ class Buffer {
 	int openIdx = 0;
 
 	std::mutex mutex;
-	std::unique_lock<std::mutex> lock;
 	std::condition_variable condProducer;
 	std::condition_variable condConsumer;
 	
@@ -32,7 +38,6 @@ public:
 		event ev = buffer[startIdx];
 
 		startIdx = (startIdx + 1) % BUFFER_SIZE;
-		lock.unlock();
 		condProducer.notify_one();
 		return ev;
 	}
@@ -47,7 +52,6 @@ public:
 		buffer[openIdx] = ev;
 		openIdx = (openIdx + 1) % BUFFER_SIZE;
 
-		lock.unlock();
 		condConsumer.notify_one();
 	}
 
@@ -64,7 +68,7 @@ Buffer buffer;
 
 event waitForEvent() {
 	int randomNum = std::rand();
-	int ms = randomNum % 500;
+	int ms = randomNum % MAX_WAIT_TIME;
 	std::this_thread::sleep_for(std::chrono::milliseconds(ms));
 
 	return event(randomNum);
@@ -72,7 +76,7 @@ event waitForEvent() {
 
 void consumeEvent(event ev) {
 	int randomNum = std::rand();
-	int ms = randomNum % 500;
+	int ms = randomNum % MAX_WAIT_TIME;
 	std::this_thread::sleep_for(std::chrono::milliseconds(ms));
 }
 
@@ -93,6 +97,7 @@ void consumer() {
 }
 
 int main() {
+	//This doesnt work for threads
 	std::srand(SEED);
 
 	std::thread producer(producer);
