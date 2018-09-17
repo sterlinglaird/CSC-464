@@ -5,17 +5,13 @@
 #include <mutex>
 #include <condition_variable>
 
-/*
-TODO
-Need to make cout thread safe and say which thread did what
-*/
-
 typedef int event;
 
 //Does not work when buffer size is 1 because of the way I defined "empty" and "full"
 const unsigned int BUFFER_SIZE = 20;
-const unsigned int SEED = 1000;
-const unsigned int MAX_WAIT_TIME = 500;
+const unsigned int MAX_WAIT_TIME = 50;
+const unsigned int NUM_PRODUCERS = 2;
+const unsigned int NUM_CONSUMERS = 10;
 
 class Buffer {
 
@@ -65,6 +61,7 @@ public:
 };
 
 Buffer buffer;
+std::mutex coutMutex;
 
 event waitForEvent() {
 	int randomNum = std::rand();
@@ -80,28 +77,39 @@ void consumeEvent(event ev) {
 	std::this_thread::sleep_for(std::chrono::milliseconds(ms));
 }
 
-void producer() {
+void producer(int id) {
 	while (true) {
 		event ev = waitForEvent();
-		std::cout << "produced: " << ev << std::endl;
+
+		std::unique_lock<std::mutex> lock{ coutMutex };
+		std::cout << "produced: " << ev << " by: " << id << std::endl;
+		lock.unlock();
+
 		buffer.addEvent(ev);
 	}
 }
 
-void consumer() {
+void consumer(int id) {
 	while (true) {
 		event ev = buffer.getEvent();
 		consumeEvent(ev);
-		std::cout << "consumed: " << ev << std::endl;
+
+		std::unique_lock<std::mutex> lock{ coutMutex };
+		std::cout << "consumed: " << ev << " by: " << id << std::endl;
+		lock.unlock();
 	}
 }
 
 int main() {
-	//This doesnt work for threads
-	std::srand(SEED);
+	for (int i = 0; i < NUM_PRODUCERS; i++) {
+		std::thread producer(producer, i);
+		producer.detach();
+	}
 
-	std::thread producer(producer);
-	std::thread consumer(consumer);
+	for (int i = 0; i < NUM_CONSUMERS; i++) {
+		std::thread consumer(consumer, i);
+		consumer.detach();
+	}
 
 	while (true) {}
 
