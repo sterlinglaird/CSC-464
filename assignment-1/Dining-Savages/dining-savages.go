@@ -6,9 +6,9 @@ import (
 	"time"
 )
 
-const NUM_SAVAGES = 5
+const NUM_SAVAGES = 10
 const MAX_WAIT_TIME = 50
-const MAX_SERVINGS = 100
+const MAX_SERVINGS = 5
 
 func min(x, y int) int {
 	if x < y {
@@ -20,15 +20,16 @@ func min(x, y int) int {
 type Pot struct {
 	filledAlert chan bool
 	servings    chan int
+	waiting     chan bool
 	alertNum    int
 }
 
 func newPot(numServings int) *Pot {
 	pot := new(Pot)
 
-	pot.alertNum = min(MAX_SERVINGS, NUM_SAVAGES)
 	pot.servings = make(chan int, numServings)
-	pot.filledAlert = make(chan bool, pot.alertNum)
+	pot.filledAlert = make(chan bool)
+	pot.waiting = make(chan bool)
 
 	return pot
 }
@@ -41,6 +42,7 @@ func (pot *Pot) getServing() int {
 	case serving = <-pot.servings:
 		return serving
 	default:
+		pot.waiting <- true
 		<-pot.filledAlert
 		serving = pot.getServing()
 	}
@@ -48,35 +50,19 @@ func (pot *Pot) getServing() int {
 	return serving
 }
 
-
-
-
-
-
-
-
-Try maintaining a "waiting" channel and alert for each waiting
-
-
-
-
-
-
-
-
-
-
-
 func (pot *Pot) fillPot() {
+	//Make sure all savages are waiting
+	for i := 0; i < NUM_SAVAGES; i++ {
+		<-pot.waiting
+	}
+
 	//Number all of the servings
 	for i := 0; i < MAX_SERVINGS; i++ {
-		fmt.Printf("filled %d\n", i)
 		pot.servings <- i
 	}
 
-	//Alert savages that pot is full. Only wakes the minimal amount
-	for i := 0; i < pot.alertNum; i++ {
-		fmt.Printf("alert %d\n", i)
+	//Alert the tribe that the pot is full
+	for i := 0; i < NUM_SAVAGES; i++ {
 		pot.filledAlert <- true
 	}
 }
@@ -94,7 +80,6 @@ func cook() {
 		<-wakeCook
 		fmt.Printf("cook refilling pot\n")
 		pot.fillPot()
-		fmt.Printf("cook refilled pot\n")
 	}
 }
 
@@ -105,11 +90,10 @@ func savage(id int) {
 
 		//Alert the cook that the pot is empty if we got the last serving
 		if serving == MAX_SERVINGS-1 {
-			fmt.Printf("savage %d alerting cook\n", id)
 			wakeCook <- true
 		}
 
-		fmt.Printf("savage %d got food\n", id)
+		fmt.Printf("savage %d got serving #%d\n", id, serving)
 		eat()
 	}
 }
@@ -117,15 +101,10 @@ func savage(id int) {
 func main() {
 	pot = newPot(MAX_SERVINGS)
 
-	for i := 0; i < MAX_SERVINGS; i++ {
-		fmt.Printf("filled %d\n", i)
-		pot.servings <- i
-	}
-
 	go cook()
 
-	//Get cook to make fill pot initially
-	//wakeCook <- true
+	//Get cook to fill pot initially
+	wakeCook <- true
 
 	for i := 0; i < NUM_SAVAGES; i++ {
 		go savage(i)
