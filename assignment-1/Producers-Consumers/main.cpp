@@ -68,7 +68,7 @@ event waitForEvent() {
 	int ms = randomNum % MAX_WAIT_TIME;
 	std::this_thread::sleep_for(std::chrono::milliseconds(ms));
 
-	return event(randomNum);
+	return event(randomNum % 10000);
 }
 
 void consumeEvent(event ev) {

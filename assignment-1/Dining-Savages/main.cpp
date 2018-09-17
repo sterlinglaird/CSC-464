@@ -5,9 +5,9 @@
 #include <mutex>
 #include <condition_variable>
 
-const unsigned int MAX_WAIT_TIME = 5;
+const unsigned int MAX_WAIT_TIME = 50;
 const unsigned int NUM_SAVAGES = 10;
-const unsigned int MAX_SERVINGS = 10;
+const unsigned int MAX_SERVINGS = 5;
 
 enum Serving {food};
 

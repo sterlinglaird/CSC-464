@@ -14,9 +14,9 @@ const MAX_WAIT_TIME = 50
 var buf = make(chan int, BUFFER_SIZE)
 
 func waitForEvent() int {
-	var randomNum = rand.Int() % 10000
+	var randomNum = rand.Int()
 	time.Sleep(time.Duration(randomNum%MAX_WAIT_TIME) * time.Millisecond)
-	return randomNum
+	return randomNum % 10000
 }
 
 func consumeEvent(event int) {
