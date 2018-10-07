@@ -8,14 +8,16 @@
 typedef int event;
 
 //Does not work when buffer size is 1 because of the way I defined "empty" and "full"
-const unsigned int BUFFER_SIZE = 20;
-const unsigned int MAX_WAIT_TIME = 50;
-const unsigned int NUM_PRODUCERS = 2;
-const unsigned int NUM_CONSUMERS = 10;
+ unsigned int BUFFER_SIZE = 100;
+ unsigned int NUM_PRODUCERS = 2;
+ unsigned int NUM_CONSUMERS = 10;
+ unsigned int NUM_PRODUCED = 10000; //each
+
+ using std::chrono::system_clock;
 
 class Buffer {
 
-	event buffer[BUFFER_SIZE];
+	std::unique_ptr<event> buffer;
 	int startIdx = 0;
 	int openIdx = 0;
 
@@ -24,6 +26,9 @@ class Buffer {
 	std::condition_variable condConsumer;
 	
 public:
+	Buffer(unsigned int size) {
+		buffer = std::unique_ptr<event>(new event[size]);
+	}
 	event getEvent() {
 		std::unique_lock<std::mutex> lock{ mutex };
 
@@ -31,7 +36,7 @@ public:
 			condConsumer.wait(lock);
 		}
 
-		event ev = buffer[startIdx];
+		event ev = buffer.get()[startIdx];
 
 		startIdx = (startIdx + 1) % BUFFER_SIZE;
 		condProducer.notify_one();
@@ -45,7 +50,7 @@ public:
 			condProducer.wait(lock);
 		}
 
-		buffer[openIdx] = ev;
+		buffer.get()[openIdx] = ev;
 		openIdx = (openIdx + 1) % BUFFER_SIZE;
 
 		condConsumer.notify_one();
@@ -60,58 +65,73 @@ public:
 	}
 };
 
-Buffer buffer;
+std::unique_ptr<Buffer> buffer;
 std::mutex coutMutex;
 
 event waitForEvent() {
 	int randomNum = std::rand();
-	int ms = randomNum % MAX_WAIT_TIME;
-	std::this_thread::sleep_for(std::chrono::milliseconds(ms));
-
 	return event(randomNum % 10000);
 }
 
 void consumeEvent(event ev) {
-	int randomNum = std::rand();
-	int ms = randomNum % MAX_WAIT_TIME;
-	std::this_thread::sleep_for(std::chrono::milliseconds(ms));
+
 }
 
 void producer(int id) {
-	while (true) {
+	for (unsigned int i = 0; i < NUM_PRODUCED; i++) {
 		event ev = waitForEvent();
 
 		std::unique_lock<std::mutex> lock{ coutMutex };
-		std::cout << "produced: " << ev << " by: " << id << std::endl;
 		lock.unlock();
 
-		buffer.addEvent(ev);
+		buffer->addEvent(ev);
 	}
 }
 
 void consumer(int id) {
 	while (true) {
-		event ev = buffer.getEvent();
+		event ev = buffer->getEvent();
 		consumeEvent(ev);
 
 		std::unique_lock<std::mutex> lock{ coutMutex };
-		std::cout << "consumed: " << ev << " by: " << id << std::endl;
 		lock.unlock();
 	}
 }
 
-int main() {
-	for (int i = 0; i < NUM_PRODUCERS; i++) {
-		std::thread producer(producer, i);
-		producer.detach();
+int main(int argc, char** args) {
+	auto start = system_clock::now();
+
+	BUFFER_SIZE = atoi(args[1]);
+	NUM_PRODUCERS = atoi(args[2]);
+	NUM_CONSUMERS = atoi(args[3]);
+	NUM_PRODUCED = atoi(args[4]);
+
+	buffer = std::unique_ptr<Buffer>(new Buffer(BUFFER_SIZE));
+
+	auto producers = std::unique_ptr<std::thread[]>(new std::thread[NUM_PRODUCERS]);
+	
+	for (unsigned int i = 0; i < NUM_PRODUCERS; i++) {
+		producers[i] = std::thread(producer, i);
 	}
 
-	for (int i = 0; i < NUM_CONSUMERS; i++) {
+	for (unsigned int i = 0; i < NUM_CONSUMERS; i++) {
 		std::thread consumer(consumer, i);
 		consumer.detach();
 	}
 
-	while (true) {}
+	for (unsigned int i = 0; i < NUM_PRODUCERS; i++) {
+		producers[i].join();
+	}
+
+	auto end = system_clock::now();
+	auto difference = end - start;
+	auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(difference).count();
+
+	std::cout << "buffer size: " << BUFFER_SIZE << std::endl;
+	std::cout << "# producers: " << NUM_PRODUCERS << std::endl;
+	std::cout << "# consumers: " << NUM_CONSUMERS << std::endl;
+	std::cout << "# produced per producer: " << NUM_PRODUCED << std::endl;
+	std::cout << "Time taken: " << milliseconds << "ms" << std::endl;
 
 	return 0;
 }

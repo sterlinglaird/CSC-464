@@ -2,13 +2,15 @@ package main
 
 import (
 	"fmt"
-	"math/rand"
+	"os"
+	"strconv"
+	"sync"
 	"time"
 )
 
-const NUM_SAVAGES = 10
-const MAX_WAIT_TIME = 50
-const MAX_SERVINGS = 5
+var NUM_SAVAGES = 10
+var MAX_SERVINGS = 5
+var NUM_COOK_ITERS = 10
 
 func min(x, y int) int {
 	if x < y {
@@ -69,23 +71,22 @@ func (pot *Pot) fillPot() {
 
 var pot *Pot
 var wakeCook = make(chan bool)
+var wg sync.WaitGroup
 
 func eat() {
-	var randomNum = rand.Int()
-	time.Sleep(time.Duration(randomNum%MAX_WAIT_TIME) * time.Millisecond)
 }
 
 func cook() {
-	for {
+	for i := 0; i < NUM_COOK_ITERS; i++ {
 		<-wakeCook
-		fmt.Printf("cook refilling pot\n")
 		pot.fillPot()
 	}
+
+	wg.Done()
 }
 
 func savage(id int) {
 	for {
-		fmt.Printf("savage %d looking for food\n", id)
 		serving := pot.getServing()
 
 		//Alert the cook that the pot is empty if we got the last serving
@@ -93,12 +94,21 @@ func savage(id int) {
 			wakeCook <- true
 		}
 
-		fmt.Printf("savage %d got serving #%d\n", id, serving)
 		eat()
 	}
 }
 
 func main() {
+	start := time.Now()
+
+	args := os.Args[1:]
+
+	NUM_SAVAGES, _ = strconv.Atoi(args[0])
+	MAX_SERVINGS, _ = strconv.Atoi(args[1])
+	NUM_COOK_ITERS, _ = strconv.Atoi(args[2])
+
+	wg.Add(1) //For the cook
+
 	pot = newPot(MAX_SERVINGS)
 
 	go cook()
@@ -110,6 +120,11 @@ func main() {
 		go savage(i)
 	}
 
-	for {
-	}
+	wg.Wait()
+	elapsed := time.Since(start)
+
+	fmt.Printf("# savages: %d\n", NUM_SAVAGES)
+	fmt.Printf("Max servings: %d\n", MAX_SERVINGS)
+	fmt.Printf("# cook iterations: %d\n", NUM_COOK_ITERS)
+	fmt.Printf("Time taken: %dms\n", elapsed.Nanoseconds()/1000000)
 }

@@ -5,9 +5,11 @@
 #include <mutex>
 #include <condition_variable>
 
-const unsigned int MAX_WAIT_TIME = 50;
-const unsigned int NUM_SAVAGES = 10;
-const unsigned int MAX_SERVINGS = 5;
+using std::chrono::system_clock;
+
+unsigned int NUM_SAVAGES = 10;
+unsigned int MAX_SERVINGS = 5;
+unsigned int NUM_COOK_ITERS = 10;
 
 enum Serving {food};
 
@@ -48,51 +50,49 @@ Pot pot;
 std::mutex coutMutex;
 
 void eat(Serving serving) {
-	int randomNum = std::rand();
-	int ms = randomNum % MAX_WAIT_TIME;
-	std::this_thread::sleep_for(std::chrono::milliseconds(ms));
+
 }
 
 void cook() {
-	while (true) {
+	for (unsigned int i = 0; i < NUM_COOK_ITERS; i++) {
 		pot.waitUntilEmpty();
 
-		std::unique_lock<std::mutex> lock{ coutMutex };
-
 		pot.fillPot(MAX_SERVINGS);
-
-		std::cout << "cook refilled pot" << std::endl;
-		lock.unlock();
 	}
 }
 
 void savage(unsigned int idx) {
 	while (true) {
-		std::unique_lock<std::mutex> lock{ coutMutex };
-		std::cout << "savage " << idx << " looking for food" << std::endl;
-		lock.unlock();
-
 		Serving serving = pot.getServing(idx);
-
-		lock.lock();
-		std::cout << "savage " << idx << " got food" << std::endl;
-		lock.unlock();
-
 		eat(serving);
 	}
 
 }
 
-int main() {
-	std::thread savages[NUM_SAVAGES];
+int main(int argc, char** args) {
+	auto start = system_clock::now();
+
+	NUM_SAVAGES = atoi(args[1]);
+	MAX_SERVINGS = atoi(args[2]);
+	NUM_COOK_ITERS = atoi(args[3]);
+
+	for (unsigned int i = 0; i < NUM_SAVAGES; i++) {
+		std::thread savage(savage, i);
+		savage.detach();
+	}
 
 	std::thread cook(cook);
 
-	for (int i = 0; i < NUM_SAVAGES; i++) {
-		savages[i] = std::thread(savage, i);
-	}
+	cook.join();
 
-	while (true) {}
+	auto end = system_clock::now();
+	auto difference = end - start;
+	auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(difference).count();
+
+	std::cout << "# savages: " << NUM_SAVAGES << std::endl;
+	std::cout << "Max servings: " << MAX_SERVINGS << std::endl;
+	std::cout << "# cook iterations: " << NUM_COOK_ITERS << std::endl;
+	std::cout << "Time taken: " << milliseconds << "ms" << std::endl;
 
 	return 0;
 }

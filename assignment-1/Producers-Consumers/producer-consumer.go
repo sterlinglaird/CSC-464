@@ -3,44 +3,59 @@ package main
 import (
 	"fmt"
 	"math/rand"
+	"os"
+	"strconv"
+	"sync"
 	"time"
 )
 
-const NUM_PRODUCERS = 2
-const NUM_CONSUMERS = 10
-const BUFFER_SIZE = 20
-const MAX_WAIT_TIME = 50
+var BUFFER_SIZE = 100
+var NUM_PRODUCERS = 2
+var NUM_CONSUMERS = 10
+var NUM_PRODUCED = 10000 //each
 
-var buf = make(chan int, BUFFER_SIZE)
+var buf chan int
+var wg sync.WaitGroup
 
 func waitForEvent() int {
 	var randomNum = rand.Int()
-	time.Sleep(time.Duration(randomNum%MAX_WAIT_TIME) * time.Millisecond)
 	return randomNum % 10000
 }
 
 func consumeEvent(event int) {
-	var randomNum = rand.Int()
-	time.Sleep(time.Duration(randomNum%MAX_WAIT_TIME) * time.Millisecond)
+
 }
 
 func producer(id int) {
-	for {
+	for i := 0; i < NUM_PRODUCED; i++ {
 		var event = waitForEvent()
-		fmt.Printf("produced: %d by %d\n", event, id)
 		buf <- event
 	}
+
+	wg.Done()
 }
 
 func consumer(id int) {
 	for {
 		event := <-buf
 		consumeEvent(event)
-		fmt.Printf("consumed: %d by %d\n", event, id)
 	}
 }
 
 func main() {
+	start := time.Now()
+
+	args := os.Args[1:]
+
+	BUFFER_SIZE, _ = strconv.Atoi(args[0])
+	NUM_PRODUCERS, _ = strconv.Atoi(args[1])
+	NUM_CONSUMERS, _ = strconv.Atoi(args[2])
+	NUM_PRODUCED, _ = strconv.Atoi(args[3])
+
+	buf = make(chan int, BUFFER_SIZE)
+
+	wg.Add(NUM_PRODUCERS)
+
 	for i := 0; i < NUM_PRODUCERS; i++ {
 		go producer(i)
 	}
@@ -49,6 +64,13 @@ func main() {
 		go consumer(i)
 	}
 
-	for {
-	}
+	wg.Wait()
+
+	elapsed := time.Since(start)
+
+	fmt.Printf("buffer size: %d\n", BUFFER_SIZE)
+	fmt.Printf("# producers: %d\n", NUM_PRODUCERS)
+	fmt.Printf("# consumers: %d\n", NUM_CONSUMERS)
+	fmt.Printf("# produced per producer: %d\n", NUM_PRODUCED)
+	fmt.Printf("Time taken: %dms\n", elapsed.Nanoseconds()/1000000)
 }
