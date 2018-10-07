@@ -47,7 +47,6 @@ public:
 };
 
 Pot pot;
-std::mutex coutMutex;
 
 void eat(Serving serving) {
 
@@ -56,7 +55,6 @@ void eat(Serving serving) {
 void cook() {
 	for (unsigned int i = 0; i < NUM_COOK_ITERS; i++) {
 		pot.waitUntilEmpty();
-
 		pot.fillPot(MAX_SERVINGS);
 	}
 }

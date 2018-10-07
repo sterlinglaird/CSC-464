@@ -66,7 +66,6 @@ public:
 };
 
 std::unique_ptr<Buffer> buffer;
-std::mutex coutMutex;
 
 event waitForEvent() {
 	int randomNum = std::rand();
@@ -81,9 +80,6 @@ void producer(int id) {
 	for (unsigned int i = 0; i < NUM_PRODUCED; i++) {
 		event ev = waitForEvent();
 
-		std::unique_lock<std::mutex> lock{ coutMutex };
-		lock.unlock();
-
 		buffer->addEvent(ev);
 	}
 }
@@ -92,9 +88,6 @@ void consumer(int id) {
 	while (true) {
 		event ev = buffer->getEvent();
 		consumeEvent(ev);
-
-		std::unique_lock<std::mutex> lock{ coutMutex };
-		lock.unlock();
 	}
 }
 
