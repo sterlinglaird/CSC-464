@@ -78,13 +78,9 @@ void passengerThread() {
 
 void carThread() {
 	for (unsigned int i = 0; i < NUM_ROUNDS; i++) {
-		//std::cout << "loading" << std::endl;
 		car.load();
-		//std::cout << "loaded" << std::endl;
 		car.run();
-		//std::cout << "unloading" << std::endl;
 		car.unload();
-		//std::cout << "unloaded" << std::endl;
 	}
 }
 
