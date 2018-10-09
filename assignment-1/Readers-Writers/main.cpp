@@ -47,8 +47,6 @@ public:
 		}
 
 		return ret;
-
-
 	}
 
 	void write(int value) {
@@ -64,20 +62,16 @@ std::mutex coutMut;
 
 void readerThread(unsigned int idx) {
 	for (unsigned int i = 0; i < NUM_ACTIONS; i++) {
-		//std::unique_lock<std::mutex> lock{ coutMut };
 		int value = resource.read();
-		//std::cout << idx << " read " << value << std::endl;
 	}
 }
 
 void writerThread(unsigned int idx) {
 	std::srand(idx);
 	for (unsigned int i = 0; i < NUM_ACTIONS; i++) {
-		//std::unique_lock<std::mutex> lock{ coutMut };
 
 		int randomNum = std::rand();
 		resource.write(randomNum);
-		//std::cout << idx << " wrote " << randomNum << std::endl;
 	}
 }
 
