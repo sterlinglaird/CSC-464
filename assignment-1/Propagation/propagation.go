@@ -37,7 +37,7 @@ func mutator(id int) {
 			time.Sleep(msToSleep * time.Millisecond)
 		}
 
-		var newValue = rand.Int() & 10000
+		var newValue = rand.Int() % 10000 //Makes number more manageable to look at
 
 		ch[id] <- Modification{newValue: newValue, origin: mutation}
 	}
@@ -45,11 +45,10 @@ func mutator(id int) {
 	wg.Done()
 }
 
-func propagator(id int, begin chan bool) {
+func propagator(id int) {
 
 	//Only one version mutates
 	if id == 0 {
-		<-begin
 		go mutator(id)
 	}
 
@@ -85,18 +84,18 @@ func main() {
 	//Make all of the resource channels
 	ch = make([]chan Modification, NUM_COPIES)
 
-	//To start the main propagator
-	begin := make(chan bool)
-
 	//Wait for all to finish
 	wg.Add(1)
 
+	//open channels, need to do this before we start the propagators
+	//or else they might access channels that havent been initialized yet
 	for i := 0; i < NUM_COPIES; i++ {
 		ch[i] = make(chan Modification)
-		go propagator(i, begin)
 	}
 
-	begin <- true
+	for i := 0; i < NUM_COPIES; i++ {
+		go propagator(i)
+	}
 
 	wg.Wait()
 

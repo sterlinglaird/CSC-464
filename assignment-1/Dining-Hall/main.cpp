@@ -56,7 +56,6 @@ void leave(unsigned int i) {
 
 void studentThread(unsigned int i) {
 	for (unsigned int i = 0; i < NUM_ROUNDS; i++) {
-
 		dine(i);
 
 		leave(i);
