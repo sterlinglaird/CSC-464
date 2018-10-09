@@ -26,7 +26,6 @@ void dine(unsigned int i) {
 		okToLeave.notify();
 	}
 
-	//std::cout << i << " ready to dine" << std::endl;
 	lock.unlock();
 
 	//Eat!!
@@ -34,14 +33,12 @@ void dine(unsigned int i) {
 	lock.lock();
 
 	numEating--; //Done eating
-
-	//std::cout << i << " done dining" << std::endl;
 }
 
 void leave(unsigned int i) {
 	std::unique_lock<std::mutex> lock{ mutex };
 	numReadyToLeave++;
-	//std::cout << i << " ready to leave" << std::endl;
+
 	if (numEating == 1 && numReadyToLeave == 1) {
 		lock.unlock();
 		okToLeave.wait();
@@ -55,13 +52,11 @@ void leave(unsigned int i) {
 	else {
 		numReadyToLeave--;
 	}
-
-	//std::cout << i << " left" << std::endl;
 }
 
 void studentThread(unsigned int i) {
 	for (unsigned int i = 0; i < NUM_ROUNDS; i++) {
-		//getFood(i);
+
 		dine(i);
 
 		leave(i);

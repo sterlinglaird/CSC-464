@@ -69,7 +69,6 @@ void readerThread(unsigned int idx) {
 void writerThread(unsigned int idx) {
 	std::srand(idx);
 	for (unsigned int i = 0; i < NUM_ACTIONS; i++) {
-
 		int randomNum = std::rand();
 		resource.write(randomNum);
 	}
