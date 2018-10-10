@@ -13,11 +13,21 @@ All code in this assignment was written by me, Sterling Laird with some solution
 
 \noindent Performance metrics were collected on a windows 10 PC with an Intel 4770k processor. Go code was compiled with Go version 1.11 and C++ code was compiled with platform toolset v141.
 
+\pagebreak
 
 \section{Dining Hall Problem}
 \begin{enumerate}
 	\item In this problem, threads (or some other concurrent construct) do some action individually before getting ready to leave. However if there is only one thread performing actions beforehand, than a thread ready to leave must wait. This problem could model the real world problem of having workers and jobs in a distributed system. If there is a worker performing a job, there could be the constraint that there must be another working waiting in case it needs to take over the job (say if the server the original worker is on goes offline).
 	\item
+	\begin{enumerate}
+	\item \textbf{Correctness}\linebreak
+	I believe both implementations of this problem are correct since they satisfy the constraints given in the problem definition. Testing done, as well of logical reasoning of the code convinces me that they are correct.
+	\item \textbf{Comprehensibility}\linebreak
+	Both solutions to this problem use a very similar method involving semaphores and mutexes, although the Go version implements semaphores with channels. Because both solutions are implemented very similarly, and have about the same succinctness (99 vs 90 lines total) I would have to say that they have equivalent comprehensibility.
+	\item \textbf{Performance}\linebreak
+	Looking at the performance data, it can be seen that the C++ version performs almost twice as well as Go even with large numbers of students. I suspect this is because in this problem each thread can repeatedly go through the hall with out waiting for other threads (most of the time) so the cost of context switching is less noticeable. The raw performance of C++ is more important to this problem than Go's ability to handle many threads.
+	\end{enumerate}
+	
 \end{enumerate}
 
 \begin{tabular}{c r r r}
@@ -36,10 +46,21 @@ Go 			& 10000 & 10000 & 23.699s \\
 C++         & 10000 & 10000 & 12.512s \\
 \end{tabular}
 
+\pagebreak
+
 \section{Dining Savages Problem}
 \begin{enumerate}
+	\item This problem may arise in any situation where there is a finite amount of some resource, or the resource must be generated on the fly. For example, there could be a program that scrapes webpages for information with multiple worker threads doing the scraping and another thread providing the pages to be scraped. The thread finding valid webpages to be scraped would only continue to find relevant webpages if the workers request more, if a worker finds what it's looking for, then it would stop requesting more webpages.
+	
 	\item
-	\item
+	\begin{enumerate}
+	\item \textbf{Correctness}\linebreak
+	Again, I believe my two implementations are correct because they satisfy the main constraints of the problem. Notably, if the pot is empty the savages must wait until the cook completely fills the pot, and all shared data is protected by mutual exclusion when modified.
+	\item \textbf{Comprehensibility}\linebreak
+	The two implementations are quite a bit different with the C++ code using mutexes to ensure mutual exclusion and conditional variables to notify the cook when the pot is empty, as well as notify all the savages when the pot is filled. The Go code on the other hand uses channels exclusively. For my implentation of this problem at least, I think they are similar as to how they work, but I think the Go code is a more straightforward as to how it works, especially since with just using channels, you don't have to worry about locks since the message passing construct handles the synchronization for you. 
+	\item \textbf{Performance}\linebreak
+	When the number of savages is low the C++ code easily beats the Go code, as well as when the pot has a very large capacity compared to the number of savages. The latter case is because, as in the previous problem, it reduces the frequency that the threads need to wait so they can just continue on without needing to context switch as often. When the number of threads increases however Go performs much faster than the C++ equivalent with a 10x performance gain at 10000 savages. This number would decrease with an increased pot size, but when the pot is big enough for no waiting it defeats the purpose of the problem.
+	\end{enumerate}
 \end{enumerate}
 
 \begin{tabular}{c r r r r}
@@ -58,10 +79,21 @@ Go 			& 1000 & 100000 & 1000 & 12.635s \\
 C++         & 1000 & 100000 & 1000 & 5.566s \\
 \end{tabular}
 
+\pagebreak
+
 \section{Producer Consumer Problem}
 \begin{enumerate}
+	\item The producer-consumer problem is one of the most common in concurrent computing. This problem can represent any problem where the division of labour between threads is such that one type is a producer and the other type is a consumer of some sort of resource. This resource could be work needed to be done with producers creating jobs and consumers executing, arbitrary data in a data pipelining application with producers producing data that has been processed according to some task and consumers retrieving that data for the next step of processing. 
+
 	\item
-	\item
+	\begin{enumerate}
+	\item \textbf{Correctness}\linebreak
+	
+	\item \textbf{Comprehensibility}\linebreak
+	
+	\item \textbf{Performance}\linebreak
+	
+	\end{enumerate}	
 \end{enumerate}
 
 \begin{tabular}{c r r r r r}
@@ -80,10 +112,21 @@ Go 			& 10000 & 10 & 10 & 1000000 & 2.303s \\
 C++         & 10000 & 10 & 10 & 1000000 & 2.627s \\
 \end{tabular}
 
+\pagebreak
+
 \section{Propagation Problem}
 \begin{enumerate}
-	\item
-	\item
+	\item This was the problem that I decided to do outside of \textit{The Little Book of Semaphores}. In this problem there is a thread with a single resource that may change at any time and many threads that contain a copy of that resource. Whenever the original resource changes all of the copies must reflect that change and update accordingly so that before another change can happen, all copies are identical again to the original. This problem could occur in data backups where once some operation happens that causes a major change (saving data, importing data, changing structure of data) the program updates all backups across multiple hard drives, servers, folders etc.
+
+	\item 
+	\begin{enumerate}
+	\item \textbf{Correctness}\linebreak
+	
+	\item \textbf{Comprehensibility}\linebreak
+	
+	\item \textbf{Performance}\linebreak
+	
+	\end{enumerate}	
 \end{enumerate}
 
 \begin{tabular}{c r r r}
@@ -102,10 +145,21 @@ Go 			& 100000 & 100 & 3.014s \\
 C++         & 100000 & 100 & 7.303s \\
 \end{tabular}
 
+\pagebreak
+
 \section{Readers Writers Problem}
 \begin{enumerate}
+	\item This is another very common problem in concurrent computing. This problem may arise in many situations, but one could be in a collaborative editing program where there are many people are viewing the modifications to the file, but when modifications happen (changing some base component of the file) the viewers cannot also modify that part or view as the changes happen (for example during the uploading of an image) and would instead see the previous state of the file.
+
 	\item
-	\item
+	\begin{enumerate}
+	\item \textbf{Correctness}\linebreak
+	
+	\item \textbf{Comprehensibility}\linebreak
+	
+	\item \textbf{Performance}\linebreak
+	
+	\end{enumerate}
 \end{enumerate}
 
 \begin{tabular}{c r r r r}
@@ -124,10 +178,20 @@ Go 			& 1000 & 100000 & 1000 & 6.297s \\
 C++         & 1000 & 100000 & 1000 & 2.361s \\
 \end{tabular}
 
+\pagebreak
+
 \section{Roller Coaster Problem}
 \begin{enumerate}
+	\item This problem is effectively a reusable barrier that also has the restraint that all threads must not cross the barrier until the barrier thread gives the go ahead and that no more threads can wait at the barrier until all originally waiting have left. This problem could arise in a worker queue where a job requires a certain number of threads to complete so it waits until all have joined before starting the job. A real world example could be a web-server that waits to start certain computationally intensive requests until it knows it has the resources to complete 
 	\item
-	\item
+	\begin{enumerate}
+	\item \textbf{Correctness}\linebreak
+	
+	\item \textbf{Comprehensibility}\linebreak
+	
+	\item \textbf{Performance}\linebreak
+	
+	\end{enumerate}
 \end{enumerate}
 
 All with ppc * rounds = passengers
