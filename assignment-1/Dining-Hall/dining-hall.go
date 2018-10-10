@@ -37,11 +37,9 @@ func dine() {
 	if numEating == 2 && numReadyToLeave == 1 {
 		okToLeave.notify()
 	}
-	mutex.Unlock()
 
 	//Eat!!
 
-	mutex.Lock()
 	numEating--
 
 	mutex.Unlock()

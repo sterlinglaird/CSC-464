@@ -28,11 +28,11 @@ public:
 	int waitForNewValue() {
 		updatedValue.wait();
 		std::unique_lock<std::mutex> lock{ mutex };
-		return value;
+		int retVal = value;
+		return retVal;
 	}
 };
 
-std::mutex coutMutex;
 std::unique_ptr<Resource[]> resources;
 
 void copyThread(unsigned int id, bool original) {
@@ -52,8 +52,9 @@ void copyThread(unsigned int id, bool original) {
 	}
 
 }
-
+std::mutex startMut;
 void mutatorThread(unsigned int id) {
+	std::unique_lock<std::mutex> lock{ startMut };
 	for (unsigned int i = 0; i < NUM_ROUNDS; i++) {
 		if (MAX_DELAY != 0) {
 			int msToSleep = std::rand() % MAX_DELAY;
@@ -74,6 +75,9 @@ int main(int argc, char** args) {
 	NUM_ROUNDS = atoi(args[3]);
 
 	resources = std::unique_ptr<Resource[]>(new Resource[NUM_COPIES]);
+	
+	//Dont start mutating until all threads are made
+	startMut.lock();
 
 	//Only mutate one copy (the original)
 	auto mutator = std::thread(mutatorThread, 0);
@@ -82,6 +86,8 @@ int main(int argc, char** args) {
 		auto copy = std::thread(copyThread, i, i==0);
 		copy.detach();
 	}
+
+	startMut.unlock();
 
 	mutator.join();
 

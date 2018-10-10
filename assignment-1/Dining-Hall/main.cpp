@@ -83,6 +83,7 @@ int main(int argc, char** args) {
 	auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(difference).count();
 
 	std::cout << "# students: " << NUM_STUDENTS << std::endl;
+	std::cout << "# rounds: " << NUM_ROUNDS<< std::endl;
 	std::cout << "Time taken: " << milliseconds << "ms" << std::endl;
 
 	return 0;

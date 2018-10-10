@@ -1,0 +1,151 @@
+\documentclass[11pt]{article}
+\usepackage{booktabs}
+\title{CSC 464 Assignment 1}
+\author{Sterling Laird - V00834995}
+\date{October 11th 2018}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+All code in this assignment was written by me, Sterling Laird with some solutions inspired by concepts in \textit{The Little Book of Semaphores}. All implementations can be found on my Github page (https://github.com/sterlinglaird/CSC-464).\linebreak
+
+\noindent Performance metrics were collected on a windows 10 PC with an Intel 4770k processor. Go code was compiled with Go version 1.11 and C++ code was compiled with platform toolset v141.
+
+
+\section{Dining Hall Problem}
+\begin{enumerate}
+	\item In this problem, threads (or some other concurrent construct) do some action individually before getting ready to leave. However if there is only one thread performing actions beforehand, than a thread ready to leave must wait. This problem could model the real world problem of having workers and jobs in a distributed system. If there is a worker performing a job, there could be the constraint that there must be another working waiting in case it needs to take over the job (say if the server the original worker is on goes offline).
+	\item
+\end{enumerate}
+
+\begin{tabular}{c r r r}
+Language    & Number of students & Number of rounds & Time taken \\
+\toprule
+Go 			& 10 & 100000 & 0.204s \\
+C++         & 10 & 100000 & 0.124s \\
+\cmidrule{1-4}
+Go 			& 10 & 1000000 & 2.016s \\
+C++         & 10 & 1000000 & 1.142s \\
+\cmidrule{1-4}
+Go 			& 1000 & 10000 & 1.992s \\
+C++         & 1000 & 10000 & 1.276s \\
+\cmidrule{1-4}
+Go 			& 10000 & 10000 & 23.699s \\
+C++         & 10000 & 10000 & 12.512s \\
+\end{tabular}
+
+\section{Dining Savages Problem}
+\begin{enumerate}
+	\item
+	\item
+\end{enumerate}
+
+\begin{tabular}{c r r r r}
+Language    & Savages & Servings per pot & Cook iterations & Time taken \\
+\toprule
+Go 			& 10 & 10 & 100000 & 0.766s \\
+C++         & 10 & 10 & 100000 & 0.174s \\
+\cmidrule{1-5}
+Go 			& 1000 & 10 & 10000 & 5.197s \\
+C++         & 1000 & 10 & 10000 & 8.153s \\
+\cmidrule{1-5}
+Go 			& 10000 & 10 & 1000 & 5.902s \\
+C++         & 10000 & 10 & 1000 & 54.207s \\
+\cmidrule{1-5}
+Go 			& 1000 & 100000 & 1000 & 12.635s \\
+C++         & 1000 & 100000 & 1000 & 5.566s \\
+\end{tabular}
+
+\section{Producer Consumer Problem}
+\begin{enumerate}
+	\item
+	\item
+\end{enumerate}
+
+\begin{tabular}{c r r r r r}
+Language    & Buffer size & Producers & Consumers & Produced per producer & Time taken \\
+\toprule
+Go 			& 10 & 10 & 10 & 100000 & 0.303s \\
+C++         & 10 & 10 & 10 & 100000 & 0.623s \\
+\cmidrule{1-6}
+Go 			& 10 & 1000 & 10 & 10000 & 4.170s \\
+C++         & 10 & 1000 & 10 & 10000 & 8.178s \\
+\cmidrule{1-6}
+Go 			& 10 & 10 & 1000 & 1000000 & 3.721s \\
+C++         & 10 & 10 & 1000 & 1000000 & 6.930s \\
+\cmidrule{1-6}
+Go 			& 10000 & 10 & 10 & 1000000 & 2.303s \\
+C++         & 10000 & 10 & 10 & 1000000 & 2.627s \\
+\end{tabular}
+
+\section{Propagation Problem}
+\begin{enumerate}
+	\item
+	\item
+\end{enumerate}
+
+\begin{tabular}{c r r r}
+Language    & Copies & Number of rounds & Time taken \\
+\toprule
+Go 			& 10 & 1000000 & 2.454s \\
+C++         & 10 & 1000000 & 0.271s \\
+\cmidrule{1-4}
+Go 			& 1000 & 10000 & 2.218s \\
+C++         & 1000 & 10000 & 0.100s \\
+\cmidrule{1-4}
+Go 			& 10000 & 1000 & 2.338s \\
+C++         & 10000 & 1000 & 0.742s \\
+\cmidrule{1-4}
+Go 			& 100000 & 100 & 3.014s \\
+C++         & 100000 & 100 & 7.303s \\
+\end{tabular}
+
+\section{Readers Writers Problem}
+\begin{enumerate}
+	\item
+	\item
+\end{enumerate}
+
+\begin{tabular}{c r r r r}
+Language    & Readers & Writers & Actions per & Time taken \\
+\toprule
+Go 			& 10 & 10 & 100000 & 0.599s \\
+C++         & 10 & 10 & 100000 & 0.250s \\
+\cmidrule{1-5}
+Go 			& 1000 & 10 & 10000 & 1.970s \\
+C++         & 1000 & 10 & 10000 & 0.925s \\
+\cmidrule{1-5}
+Go 			& 10000 & 10 & 1000 & 4.452s \\
+C++         & 10000 & 10 & 1000 & 1.478s \\
+\cmidrule{1-5}
+Go 			& 1000 & 100000 & 1000 & 6.297s \\
+C++         & 1000 & 100000 & 1000 & 2.361s \\
+\end{tabular}
+
+\section{Roller Coaster Problem}
+\begin{enumerate}
+	\item
+	\item
+\end{enumerate}
+
+All with ppc * rounds = passengers
+
+\begin{tabular}{c r r r}
+Language    & Passengers per car & Passengers & Time taken \\
+\toprule
+Go 			& 1 & 100000 & 0.123s \\
+C++         & 1 & 100000 & 5.774s \\
+\cmidrule{1-4}
+Go 			& 1000 & 10000 & 2.218s \\
+C++         & 1000 & 10000 & 0.100s \\
+\cmidrule{1-4}
+Go 			& 10000 & 1000 & 2.338s \\
+C++         & 10000 & 1000 & 0.742s \\
+\cmidrule{1-4}
+Go 			& 10 & 1000 & 0.001s \\
+C++         & 10 & 1000 & 0.088s \\
+\end{tabular}
+
+\end{document}
