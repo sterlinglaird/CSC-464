@@ -120,6 +120,7 @@ func majority(orders map[string]Order, ignoredGenerals []string) (order Order) {
 	} else {
 		order = retreat
 	}
+
 	return
 }
 
@@ -165,13 +166,13 @@ func recieveMessages(thisGen General, orders map[string]Order, messengers map[st
 	}
 }
 
-func runCommander(thisGen General, order Order, messengers map[string]chan Order, orderTaken *Order, wg *sync.WaitGroup) {
+func runCommander(thisGen General, order Order, messengersTo map[string]chan Order, orderTaken *Order, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	*orderTaken = order
 
 	//Send order to all lietenants (not itself)
-	for genName, messenger := range messengers {
+	for genName, messenger := range messengersTo {
 		if genName != thisGen.name {
 			//fmt.Printf("%s sent %s to %s\n", thisGen.name, order.ToString(), genName)
 			messenger <- order
@@ -179,22 +180,23 @@ func runCommander(thisGen General, order Order, messengers map[string]chan Order
 	}
 }
 
-func runLieutenant(thisGen General, commanderName string, orderTaken *Order, messengers map[string]chan Order, wg *sync.WaitGroup) {
+//From this general to _, to this genereal from _
+func runLieutenant(thisGen General, commanderName string, orderTaken *Order, toMessengers map[string]chan Order, fromMessengers map[string]chan Order, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	orders := make(map[string]Order)
 
 	//Recieve the order from the commander
-	orders[commanderName] = <-messengers[thisGen.name]
+	orders[commanderName] = <-toMessengers[commanderName]
 	//fmt.Printf("%s recieved %s from %s\n", thisGen.name, orders[commanderName].ToString(), commanderName)
 
 	//Recieve all the messages from the other lietenants
 	var recieveWg sync.WaitGroup
 	recieveWg.Add(1)
-	go recieveMessages(thisGen, orders, messengers, &recieveWg)
+	go recieveMessages(thisGen, orders, toMessengers, &recieveWg)
 
 	//Send order to all other lietenants
-	for genName, messenger := range messengers {
+	for genName, messenger := range fromMessengers {
 		if genName != thisGen.name && genName != commanderName {
 			//fmt.Printf("%s sent %s to %s\n", thisGen.name, orderToSend(orders[commanderName], thisGen.affinity).ToString(), genName)
 			messenger <- orderToSend(orders[commanderName], thisGen.affinity)
@@ -226,15 +228,43 @@ func byzantineGenerals(generals []General, order Order, recLvl int) (result Resu
 	var wg sync.WaitGroup
 	wg.Add(len(generals))
 
-	messengers := make(map[string]chan Order)
-	for generalIdx := range generals {
-		messengers[generals[generalIdx].name] = make(chan Order)
+	var commanderName string
+	var commanderIdx int = 0
+	for genIdx := range generals {
+		if generals[genIdx].rank == commander {
+			commanderName = generals[genIdx].name
+			commanderIdx = genIdx
+		}
+	}
+
+	//From -> To -> channel
+	messengers := make(map[string]map[string]chan Order)
+	for fromGen := range generals {
+		messengers[generals[fromGen].name] = make(map[string]chan Order)
+		for toGen := range generals {
+			messengers[generals[fromGen].name][generals[toGen].name] = make(chan Order)
+		}
 	}
 
 	//First general is the commander, rest are lietenants
-	go runCommander(generals[0], order, messengers, &result.orderTaken[0], &wg)
+	go runCommander(generals[commanderIdx], order, messengers[commanderName], &result.orderTaken[0], &wg)
 	for generalIdx := 1; generalIdx < len(generals); generalIdx++ {
-		go runLieutenant(generals[generalIdx], generals[0].name, &result.orderTaken[generalIdx], messengers, &wg)
+		toMessengers := make(map[string]chan Order)
+		fromMessengers := make(map[string]chan Order)
+
+		for fromKey, _ := range messengers {
+			for toKey, ch := range messengers[fromKey] {
+				if toKey == generals[generalIdx].name {
+					toMessengers[fromKey] = ch
+				}
+			}
+		}
+
+		for toKey, ch := range messengers[generals[generalIdx].name] {
+			fromMessengers[toKey] = ch
+		}
+
+		go runLieutenant(generals[generalIdx], commanderName, &result.orderTaken[generalIdx], toMessengers, fromMessengers, &wg)
 	}
 
 	wg.Wait()
@@ -274,8 +304,12 @@ func main() {
 		General{"C", loyal, commander},
 		General{"L1", loyal, lieutenant},
 		General{"L2", loyal, lieutenant},
-		//General{"L3", loyal, lieutenant},
+		General{"L3", loyal, lieutenant},
 		General{"L4", traitor, lieutenant},
+		General{"L5", traitor, lieutenant},
+		General{"L6", traitor, lieutenant},
+		General{"L7", loyal, lieutenant},
+		General{"L8", traitor, lieutenant},
 	}
 
 	result := byzantineGenerals(generals, attack, 1)
