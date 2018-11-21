@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"sync"
 
@@ -38,21 +39,24 @@ func startProcess(vc *vc.VectorClock, eventList []Event, wg *sync.WaitGroup) (er
 			}
 		}
 		wg.Done()
+		//fmt.Printf("%d: %s\n", vc.Id, vc.GetClockString())
 	}()
 	return
 }
 
+//Uses the example from the wikipedia page for vector clocks
 func testExample() (err error) {
 	var wg sync.WaitGroup
 
 	processes := []int{0, 1, 2}
+	numProcess := len(processes)
 	wg.Add(len(processes))
-	vectorClocks := make([]vc.VectorClock, len(processes))
-	chans := make([]chan map[int]int, len(processes))
+	vectorClocks := make([]vc.VectorClock, numProcess)
+	chans := make([]chan map[int]int, numProcess)
 
 	for idx, _ := range chans {
-		//Buffering would not cause any drawback, I choose not to do it so everything happens sequencially
-		chans[idx] = make(chan map[int]int)
+		//Only works with zero buffering as it needs the waiting to communicate as the method of syncronization between the processes
+		chans[idx] = make(chan map[int]int, 0)
 	}
 
 	//Create the vectorclocks
@@ -70,25 +74,33 @@ func testExample() (err error) {
 
 	wg.Wait()
 
-	//Correct values from the example on wikipedia page for vector clocks
 	correctClocks := [][]int{
 		{4, 5, 5},
 		{2, 5, 1},
 		{2, 5, 5},
 	}
 
-	for processIdx := 0; processIdx < 3; processIdx++ {
-		for clockIdx := 0; clockIdx < 3; clockIdx++ {
+	var errBuff bytes.Buffer
+	var numErr int = 0
+	for processIdx := 0; processIdx < numProcess; processIdx++ {
+		for clockIdx := 0; clockIdx < numProcess; clockIdx++ {
 			correctClock := correctClocks[processIdx][clockIdx]
 			computedClock, _ := vectorClocks[processIdx].GetClock(clockIdx)
 			if correctClock != computedClock {
-				err = fmt.Errorf("Error: Process %d clock %d should be %d, got %d", processIdx, clockIdx, correctClock, computedClock)
+				numErr++
+				if numErr > 1 {
+					errBuff.WriteString("\n")
+				}
+				errBuff.WriteString(fmt.Sprintf("Error: Process %d clock %d should be %d, got %d", processIdx, clockIdx, correctClock, computedClock))
 			}
 		}
 	}
 
-	return
+	if numErr > 1 {
+		err = fmt.Errorf(errBuff.String())
+	}
 
+	return
 }
 
 func main() {
@@ -97,7 +109,6 @@ func main() {
 	if err == nil {
 		fmt.Printf("PASSED\n")
 	} else {
-		fmt.Printf("FAILED: %s\n", err.Error())
+		fmt.Printf("FAILED:\n%s\n", err.Error())
 	}
-
 }

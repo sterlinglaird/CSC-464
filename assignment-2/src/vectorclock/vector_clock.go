@@ -47,7 +47,12 @@ func (this *VectorClock) Receive(otherId int) {
 }
 
 func (this *VectorClock) Send(otherId int) {
-	this.chans[otherId] <- this.clockVector
+	vectorCopy := make(map[int]int)
+	for key, value := range this.clockVector {
+		vectorCopy[key] = value
+	}
+
+	this.chans[otherId] <- vectorCopy
 }
 
 func (this *VectorClock) Inc() {
@@ -56,9 +61,14 @@ func (this *VectorClock) Inc() {
 
 func (this *VectorClock) GetClockString() string {
 	var b bytes.Buffer
+	clocks := make([]int, len(this.clockVector))
 
 	for id, clock := range this.clockVector {
-		b.WriteString(fmt.Sprintf("%d:%d ", id, clock))
+		clocks[id] = clock
+	}
+
+	for id := range clocks {
+		b.WriteString(fmt.Sprintf("%d:%d ", id, clocks[id]))
 	}
 	return b.String()
 }
