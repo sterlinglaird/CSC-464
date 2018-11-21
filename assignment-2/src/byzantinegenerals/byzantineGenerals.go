@@ -6,8 +6,6 @@ import (
 )
 
 type Order int
-type Affinity int
-type Rank int
 
 const (
 	Attack Order = iota
@@ -25,15 +23,24 @@ func (o Order) ToString() string {
 	}
 }
 
+type Affinity int
+
 const (
 	Loyal Affinity = iota
 	Traitor
 )
 
+type Rank int
+
 const (
 	Commander Rank = iota
 	Lieutenant
 )
+
+type Message struct {
+	order Order
+	depth int
+}
 
 type General struct {
 	Name     string
@@ -88,7 +95,21 @@ func detOrderToSend(recievedOrder Order, aff Affinity) Order {
 	}
 }
 
-func recieveMessages(thisGen General, orders map[string]Order, messengers map[string]chan Order, wg *sync.WaitGroup) {
+func runCommander(thisGen General, order Order, messengersTo map[string]chan Message, orderTaken *Order, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	*orderTaken = order
+
+	//Send order to all lietenants (not itself)
+	for genName, messenger := range messengersTo {
+		if genName != thisGen.Name {
+			//fmt.Printf("%s sent %s to %s\n", thisGen.Name, order.ToString(), genName)
+			messenger <- Message{order, 0}
+		}
+	}
+}
+
+func recieveMessages(thisGen General, orders map[string]Order, messengers map[string]chan Message, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	cases := make([]reflect.SelectCase, len(messengers))
@@ -107,32 +128,18 @@ func recieveMessages(thisGen General, orders map[string]Order, messengers map[st
 	for idx := 0; idx < len(messengers)-2; idx++ {
 		chosen, value, _ := reflect.Select(cases)
 		//fmt.Printf("%s recieved %s from %s\n", thisGen.Name, value.Interface().(Order).ToString(), idxToMessenger[chosen])
-		orders[idxToMessenger[chosen]] = value.Interface().(Order)
-	}
-}
-
-func runCommander(thisGen General, order Order, messengersTo map[string]chan Order, orderTaken *Order, wg *sync.WaitGroup) {
-	defer wg.Done()
-
-	*orderTaken = order
-
-	//Send order to all lietenants (not itself)
-	for genName, messenger := range messengersTo {
-		if genName != thisGen.Name {
-			//fmt.Printf("%s sent %s to %s\n", thisGen.Name, order.ToString(), genName)
-			messenger <- order
-		}
+		orders[idxToMessenger[chosen]] = value.Interface().(Message).order
 	}
 }
 
 //From this general to _, to this genereal from _
-func runLieutenant(thisGen General, commanderName string, orderTaken *Order, toMessengers map[string]chan Order, fromMessengers map[string]chan Order, wg *sync.WaitGroup) {
+func runLieutenant(thisGen General, commanderName string, orderTaken *Order, toMessengers map[string]chan Message, fromMessengers map[string]chan Message, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	orders := make(map[string]Order)
 
 	//Recieve the order from the commander
-	orders[commanderName] = <-toMessengers[commanderName]
+	orders[commanderName] = (<-toMessengers[commanderName]).order
 	//fmt.Printf("%s recieved %s from %s\n", thisGen.Name, orders[commanderName].ToString(), commanderName)
 
 	orderToSend := orders[commanderName]
@@ -146,7 +153,7 @@ func runLieutenant(thisGen General, commanderName string, orderTaken *Order, toM
 	for genName, messenger := range fromMessengers {
 		if genName != thisGen.Name && genName != commanderName {
 			//fmt.Printf("%s sent %s to %s\n", thisGen.Name, orderToSend(orders[commanderName], thisGen.Affinity).ToString(), genName)
-			messenger <- detOrderToSend(orderToSend, thisGen.Affinity)
+			messenger <- Message{detOrderToSend(orderToSend, thisGen.Affinity), 0}
 
 			//Keep changing relayed order if a traitor
 			// if thisGen.Affinity == traitor {
@@ -157,17 +164,17 @@ func runLieutenant(thisGen General, commanderName string, orderTaken *Order, toM
 
 	recieveWg.Wait()
 
-	var numAtt, numRet int = 0, 0
-	for k, v := range orders {
-		if k == thisGen.Name || k == commanderName {
-			continue
-		}
-		if v == Attack {
-			numAtt++
-		} else {
-			numRet++
-		}
-	}
+	// var numAtt, numRet int = 0, 0
+	// for k, v := range messages {
+	// 	if k == thisGen.Name || k == commanderName {
+	// 		continue
+	// 	}
+	// 	if v.order == Attack {
+	// 		numAtt++
+	// 	} else {
+	// 		numRet++
+	// 	}
+	// }
 
 	//fmt.Printf("%s recieved %d attack and %d retreat\n", thisGen.Name, numAtt, numRet)
 	//We take the majority as the order we will take (ignoring our results and the commanders results)
@@ -190,19 +197,19 @@ func ByzantineGenerals(generals []General, order Order, recLvl int) (result Resu
 	}
 
 	//From -> To -> channel
-	messengers := make(map[string]map[string]chan Order)
+	messengers := make(map[string]map[string]chan Message)
 	for fromGen := range generals {
-		messengers[generals[fromGen].Name] = make(map[string]chan Order)
+		messengers[generals[fromGen].Name] = make(map[string]chan Message)
 		for toGen := range generals {
-			messengers[generals[fromGen].Name][generals[toGen].Name] = make(chan Order)
+			messengers[generals[fromGen].Name][generals[toGen].Name] = make(chan Message)
 		}
 	}
 
 	//First general is the commander, rest are lietenants
 	go runCommander(generals[commanderIdx], order, messengers[commanderName], &result.OrderTaken[0], &wg)
 	for generalIdx := 1; generalIdx < len(generals); generalIdx++ {
-		toMessengers := make(map[string]chan Order)
-		fromMessengers := make(map[string]chan Order)
+		toMessengers := make(map[string]chan Message)
+		fromMessengers := make(map[string]chan Message)
 
 		for fromKey, _ := range messengers {
 			for toKey, ch := range messengers[fromKey] {

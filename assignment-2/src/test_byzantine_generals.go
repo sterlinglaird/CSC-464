@@ -67,11 +67,4 @@ func main() {
 		}
 		fmt.Printf("%s %stook order %s\n", generals[idx].Name, traitorStr, result.OrderTaken[idx].ToString())
 	}
-
-	fmt.Println()
-
-	fmt.Printf("%d loyal\n", numLoyal)
-	fmt.Printf("%d traitor\n", numTraitor)
-	fmt.Printf("m = %f\n", (float32(numLoyal+numTraitor-1))/(3))
-
 }
