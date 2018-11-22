@@ -97,17 +97,7 @@ func testExample(events [][]Event, correctClocks [][]int) (err error) {
 	return
 }
 
-/*
-
-0   o oo
-   / /  \
-1 o /    o  o
-   /       /
-2 o oo    /
-   /  \  /
-3 o    oo
-
-*/
+//Example from the wikipedia page on vector clocks
 func testWikiExample() error {
 	events := [][]Event{
 		[]Event{Event{Receive, 1}, Event{Send, 1}, Event{Receive, 2}, Event{Receive, 2}},
@@ -124,6 +114,17 @@ func testWikiExample() error {
 	return testExample(events, correctClocks)
 }
 
+/*
+
+0   o oo
+   / /  \
+1 o /    o  o
+   /       /
+2 o oo    /
+   /  \  /
+3 o    oo
+
+*/
 func testMyExample() error {
 	events := [][]Event{
 		[]Event{Event{Receive, 1}, Event{Receive, 2}, Event{Send, 1}},
