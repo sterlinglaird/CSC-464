@@ -111,7 +111,7 @@ func (this *node) decide() Order {
 	orders[this.Received]++
 
 	//Decide on the order to take at this level by looking at the majority of our siblings children.
-	//Easy to understand graphically, this is basically getting the messages sent to us on level down
+	//Easy to understand graphically, this is basically getting the messages sent to us one level down
 	//@TODO I think this step can be made faster by caching the results since the will be computed multiple times, really doesnt matter for this though..
 	for _, sibling := range this.Parent.Children {
 		if sibling.Id != this.Id {
