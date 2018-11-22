@@ -1,15 +1,11 @@
 package byzantineGenerals
 
-import (
-	"reflect"
-	"sync"
-)
-
 type Order int
 
 const (
 	Attack Order = iota
 	Retreat
+	Undetermined
 )
 
 func (o Order) ToString() string {
@@ -18,6 +14,8 @@ func (o Order) ToString() string {
 		return "ATTACK"
 	case Retreat:
 		return "RETREAT"
+	case Undetermined:
+		return "undetermined order"
 	default:
 		return "unimplemented order type"
 	}
@@ -37,11 +35,6 @@ const (
 	Lieutenant
 )
 
-type Message struct {
-	order Order
-	depth int
-}
-
 type General struct {
 	Name     string
 	Affinity Affinity
@@ -49,28 +42,23 @@ type General struct {
 }
 
 type Result struct {
-	OrderTaken []Order //Orders taken by each general, ordered same way as input general list
+	OrderTaken []Order //Orders taken by each general, ordered same way as input general list. [0] is the final consensus
 }
 
-func majority(orders map[string]Order, ignoredGenerals []string) (order Order) {
-	var diff int = 0 //#attack - #retreat
-	for genName := range orders {
-		for igName := range ignoredGenerals {
-			if ignoredGenerals[igName] == genName {
-				continue
-			}
-		}
-		if orders[genName] == Attack {
-			diff++
-		} else {
-			diff--
-		}
-	}
+type node struct {
+	Id        int
+	Received  Order
+	Reply     Order
+	Children  []*node
+	Parent    *node
+	PathTaken map[int]bool //whether a node id has been seen in the path of this order
+	Depth     int          //How deep the node is in the message tree. Commander is at 0
+}
 
-	if diff > 0 {
+func majority(orders map[Order]int) (order Order) {
+	order = Retreat
+	if orders[Attack] > orders[Retreat] {
 		order = Attack
-	} else {
-		order = Retreat
 	}
 
 	return
@@ -87,146 +75,114 @@ func swapOrder(ord Order) Order {
 	}
 }
 
-func detOrderToSend(recievedOrder Order, aff Affinity) Order {
-	if aff == Loyal {
-		return recievedOrder
-	} else {
-		return swapOrder(recievedOrder)
-	}
-}
-
-func runCommander(thisGen General, order Order, messengersTo map[string]chan Message, orderTaken *Order, wg *sync.WaitGroup) {
-	defer wg.Done()
-
-	*orderTaken = order
-
-	//Send order to all lietenants (not itself)
-	for genName, messenger := range messengersTo {
-		if genName != thisGen.Name {
-			//fmt.Printf("%s sent %s to %s\n", thisGen.Name, order.ToString(), genName)
-			messenger <- Message{order, 0}
-		}
-	}
-}
-
-func recieveMessages(thisGen General, orders map[string]Order, messengers map[string]chan Message, wg *sync.WaitGroup) {
-	defer wg.Done()
-
-	cases := make([]reflect.SelectCase, len(messengers))
-
-	idxToMessenger := make(map[int]string) //So we can map the result back to a source
-
-	var midx int = 0
-	for messengerName, ch := range messengers {
-		cases[midx] = reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(ch)}
-		idxToMessenger[midx] = messengerName
-		midx++
+//Sends a message to a node by constructing a new node with a higher depth
+func (this *node) sendMessage(destId int, traitors map[int]bool) *node {
+	if this.PathTaken[destId] {
+		return nil
 	}
 
-	//@TODO this should really get ALL messages and then notify when commanders has been gotten
-	//Collect N-2 messages (from all generals except commander and ourself)
-	for idx := 0; idx < len(messengers)-2; idx++ {
-		chosen, value, _ := reflect.Select(cases)
-		//fmt.Printf("%s recieved %s from %s\n", thisGen.Name, value.Interface().(Order).ToString(), idxToMessenger[chosen])
-		orders[idxToMessenger[chosen]] = value.Interface().(Message).order
-	}
-}
+	order := this.Received
 
-//From this general to _, to this genereal from _
-func runLieutenant(thisGen General, commanderName string, orderTaken *Order, toMessengers map[string]chan Message, fromMessengers map[string]chan Message, wg *sync.WaitGroup) {
-	defer wg.Done()
-
-	orders := make(map[string]Order)
-
-	//Recieve the order from the commander
-	orders[commanderName] = (<-toMessengers[commanderName]).order
-	//fmt.Printf("%s recieved %s from %s\n", thisGen.Name, orders[commanderName].ToString(), commanderName)
-
-	orderToSend := orders[commanderName]
-
-	//Recieve all the messages from the other lietenants
-	var recieveWg sync.WaitGroup
-	recieveWg.Add(1)
-	go recieveMessages(thisGen, orders, toMessengers, &recieveWg)
-
-	//Send order to all other lietenants
-	for genName, messenger := range fromMessengers {
-		if genName != thisGen.Name && genName != commanderName {
-			//fmt.Printf("%s sent %s to %s\n", thisGen.Name, orderToSend(orders[commanderName], thisGen.Affinity).ToString(), genName)
-			messenger <- Message{detOrderToSend(orderToSend, thisGen.Affinity), 0}
-
-			//Keep changing relayed order if a traitor
-			// if thisGen.Affinity == traitor {
-			// 	orderToSend = swapOrder(orderToSend)
-			// }
+	//If you are a traitor, then swap the order for certain generals. Arbitrary choice to make it 50/50
+	if traitors[this.Id] {
+		if destId%2 == 0 {
+			order = swapOrder(order)
 		}
 	}
 
-	recieveWg.Wait()
+	//Copy the paths taken into a new map and mark it as seen by us
+	pathTaken := make(map[int]bool)
+	for k, v := range this.PathTaken {
+		pathTaken[k] = v
+	}
+	pathTaken[destId] = true
 
-	// var numAtt, numRet int = 0, 0
-	// for k, v := range messages {
-	// 	if k == thisGen.Name || k == commanderName {
-	// 		continue
-	// 	}
-	// 	if v.order == Attack {
-	// 		numAtt++
-	// 	} else {
-	// 		numRet++
-	// 	}
-	// }
-
-	//fmt.Printf("%s recieved %d attack and %d retreat\n", thisGen.Name, numAtt, numRet)
-	//We take the majority as the order we will take (ignoring our results and the commanders results)
-	*orderTaken = majority(orders, []string{commanderName})
+	return &node{destId, order, Undetermined, nil, this, pathTaken, this.Depth + 1}
 }
 
-func ByzantineGenerals(generals []General, order Order, recLvl int) (result Result) {
-	result.OrderTaken = make([]Order, len(generals)) //Each general will add their enty when they compute it
-
-	var wg sync.WaitGroup
-	wg.Add(len(generals))
-
-	var commanderName string
-	var commanderIdx int = 0
-	for genIdx := range generals {
-		if generals[genIdx].Rank == Commander {
-			commanderName = generals[genIdx].Name
-			commanderIdx = genIdx
-		}
+func (this *node) decide() Order {
+	//If there is no more children then we just take our own recieved message as the reply
+	if len(this.Children) == 0 {
+		this.Reply = this.Received
+		return this.Reply
 	}
 
-	//From -> To -> channel
-	messengers := make(map[string]map[string]chan Message)
-	for fromGen := range generals {
-		messengers[generals[fromGen].Name] = make(map[string]chan Message)
-		for toGen := range generals {
-			messengers[generals[fromGen].Name][generals[toGen].Name] = make(chan Message)
-		}
-	}
+	orders := map[Order]int{Attack: 0, Retreat: 0}
+	orders[this.Received]++
 
-	//First general is the commander, rest are lietenants
-	go runCommander(generals[commanderIdx], order, messengers[commanderName], &result.OrderTaken[0], &wg)
-	for generalIdx := 1; generalIdx < len(generals); generalIdx++ {
-		toMessengers := make(map[string]chan Message)
-		fromMessengers := make(map[string]chan Message)
-
-		for fromKey, _ := range messengers {
-			for toKey, ch := range messengers[fromKey] {
-				if toKey == generals[generalIdx].Name {
-					toMessengers[fromKey] = ch
+	//Decide on the order to take at this level by looking at the majority of our siblings children.
+	//Easy to understand graphically, this is basically getting the messages sent to us on level down
+	//@TODO I think this step can be made faster by caching the results since the will be computed multiple times, really doesnt matter for this though..
+	for _, sibling := range this.Parent.Children {
+		if sibling.Id != this.Id {
+			for _, child := range sibling.Children {
+				if child.Id == this.Id {
+					orders[child.decide()]++
 				}
 			}
 		}
 
-		for toKey, ch := range messengers[generals[generalIdx].Name] {
-			fromMessengers[toKey] = ch
-		}
-
-		go runLieutenant(generals[generalIdx], commanderName, &result.OrderTaken[generalIdx], toMessengers, fromMessengers, &wg)
 	}
 
-	wg.Wait()
+	this.Reply = majority(orders)
+	return this.Reply
+}
+
+//Constructs the tree with all the simulated messages passed between generals
+func constructMessageTree(numGenerals, numTraitors int, order Order, traitors map[int]bool) *node {
+	//Root node for the tree. Represents the commander
+	commanderNode := &node{0, order, Undetermined, nil, nil, map[int]bool{0: true}, 0}
+
+	nodeQueue := []*node{commanderNode}
+
+	for len(nodeQueue) > 0 {
+		//Take first element of queue
+		currNode := nodeQueue[0]
+		nodeQueue = nodeQueue[1:]
+
+		//Only go numTraitor times deep since as lamport described that is all that is needed inn OM(m)
+		if currNode.Depth < numTraitors {
+			for destID := 1; destID < numGenerals; destID++ {
+				child := currNode.sendMessage(destID, traitors)
+				if child != nil {
+					currNode.Children = append(currNode.Children, child)
+					child.Parent = currNode
+
+					//Keep appending to the queue so the whole tree is generated
+					nodeQueue = append(nodeQueue, child)
+				}
+			}
+		}
+	}
+	return commanderNode
+}
+
+func ByzantineGenerals(generals []General, order Order) (result Result) {
+	traitors := make(map[int]bool)
+	var numTraitors int = 0
+	for generalIdx := range generals {
+		if generals[generalIdx].Affinity == Traitor {
+			numTraitors++
+			traitors[generalIdx] = true
+		}
+	}
+
+	tree := constructMessageTree(len(generals), numTraitors, order, traitors)
+
+	result.OrderTaken = make([]Order, len(generals))
+
+	//Calculate the orders for the lieutenants
+	orders := map[Order]int{Attack: 0, Retreat: 0}
+	var genIdx int = 1
+	for _, general := range tree.Children {
+		order := general.decide()
+		result.OrderTaken[genIdx] = order
+		orders[order]++
+		genIdx++
+	}
+
+	//Calculate the majority for the commander (the consensus)
+	result.OrderTaken[0] = majority(orders)
 
 	return
 }

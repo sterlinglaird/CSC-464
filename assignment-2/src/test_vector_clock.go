@@ -39,18 +39,21 @@ func startProcess(vc *vc.VectorClock, eventList []Event, wg *sync.WaitGroup) (er
 			}
 		}
 		wg.Done()
-		//fmt.Printf("%d: %s\n", vc.Id, vc.GetClockString())
 	}()
 	return
 }
 
-//Uses the example from the wikipedia page for vector clocks
-func testExample() (err error) {
+func testExample(events [][]Event, correctClocks [][]int) (err error) {
 	var wg sync.WaitGroup
+	numProcess := len(events)
 
-	processes := []int{0, 1, 2}
-	numProcess := len(processes)
+	processes := make([]int, numProcess)
+	for procIdx := range events {
+		processes[procIdx] = procIdx
+	}
+
 	wg.Add(len(processes))
+
 	vectorClocks := make([]vc.VectorClock, numProcess)
 	chans := make([]chan map[int]int, numProcess)
 
@@ -66,19 +69,10 @@ func testExample() (err error) {
 		if err != nil {
 			return
 		}
+		startProcess(&vectorClocks[idx], events[idx], &wg)
 	}
-
-	startProcess(&vectorClocks[0], []Event{Event{Receive, 1}, Event{Send, 1}, Event{Receive, 2}, Event{Receive, 2}}, &wg)
-	startProcess(&vectorClocks[1], []Event{Event{Receive, 2}, Event{Send, 0}, Event{Send, 2}, Event{Receive, 0}, Event{Send, 2}}, &wg)
-	startProcess(&vectorClocks[2], []Event{Event{Send, 1}, Event{Receive, 1}, Event{Send, 0}, Event{Receive, 1}, Event{Send, 0}}, &wg)
 
 	wg.Wait()
-
-	correctClocks := [][]int{
-		{4, 5, 5},
-		{2, 5, 1},
-		{2, 5, 5},
-	}
 
 	var errBuff bytes.Buffer
 	var numErr int = 0
@@ -103,12 +97,63 @@ func testExample() (err error) {
 	return
 }
 
-func main() {
-	fmt.Printf("Testing example...\n")
-	err := testExample()
+/*
+
+0   o oo
+   / /  \
+1 o /    o  o
+   /       /
+2 o oo    /
+   /  \  /
+3 o    oo
+
+*/
+func testWikiExample() error {
+	events := [][]Event{
+		[]Event{Event{Receive, 1}, Event{Send, 1}, Event{Receive, 2}, Event{Receive, 2}},
+		[]Event{Event{Receive, 2}, Event{Send, 0}, Event{Send, 2}, Event{Receive, 0}, Event{Send, 2}},
+		[]Event{Event{Send, 1}, Event{Receive, 1}, Event{Send, 0}, Event{Receive, 1}, Event{Send, 0}},
+	}
+
+	correctClocks := [][]int{
+		{4, 5, 5},
+		{2, 5, 1},
+		{2, 5, 5},
+	}
+
+	return testExample(events, correctClocks)
+}
+
+func testMyExample() error {
+	events := [][]Event{
+		[]Event{Event{Receive, 1}, Event{Receive, 2}, Event{Send, 1}},
+		[]Event{Event{Send, 0}, Event{Receive, 0}, Event{Receive, 3}},
+		[]Event{Event{Send, 0}, Event{Receive, 3}, Event{Send, 3}},
+		[]Event{Event{Send, 2}, Event{Receive, 2}, Event{Send, 1}},
+	}
+
+	correctClocks := [][]int{
+		{3, 1, 1, 0},
+		{3, 2, 3, 3},
+		{0, 0, 3, 1},
+		{0, 0, 3, 3},
+	}
+
+	return testExample(events, correctClocks)
+}
+
+func reportTest(err error) {
 	if err == nil {
 		fmt.Printf("PASSED\n")
 	} else {
 		fmt.Printf("FAILED:\n%s\n", err.Error())
 	}
+}
+
+func main() {
+	fmt.Printf("Testing wiki example...\n")
+	reportTest(testWikiExample())
+
+	fmt.Printf("Testing my example...\n")
+	reportTest(testMyExample())
 }

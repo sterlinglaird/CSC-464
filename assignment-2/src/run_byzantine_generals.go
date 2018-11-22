@@ -33,14 +33,7 @@ func strToGeneral(generalStr string, rank byzGen.Rank) (general byzGen.General, 
 	return
 }
 
-func validateArgs(recLvl int, generalsStr string, orderStr string) (outRecLvl int, outGenerals []byzGen.General, outOrder byzGen.Order, err error) {
-	//Recursion level
-	outRecLvl = recLvl
-	if outRecLvl <= 0 {
-		err = fmt.Errorf("Recursion level must be greater that 0")
-		return
-	}
-
+func validateArgs(generalsStr string, orderStr string) (outGenerals []byzGen.General, outOrder byzGen.Order, err error) {
 	//Generals
 	generalsSplitStr := strings.Split(generalsStr, ",")
 	if len(generalsSplitStr) < 2 {
@@ -76,34 +69,23 @@ func validateArgs(recLvl int, generalsStr string, orderStr string) (outRecLvl in
 }
 
 func main() {
-	var recLvl int
 	var generalsStr string
 	var orderStr string
 
-	flag.IntVar(&recLvl, "r", 0, "Level of recursion")
 	flag.StringVar(&generalsStr, "g", "", "A list of generals of form G0:L,G1:L,G2:T,... with L=loyal and T=traitor. First general is the commander")
 	flag.StringVar(&orderStr, "o", "", "The order that the commander will give to the other generals. Can be ATTACK or RETREAT")
 
 	flag.Parse()
 
-	recLvl, generals, order, err := validateArgs(recLvl, generalsStr, orderStr)
+	generals, order, err := validateArgs(generalsStr, orderStr)
 	if err != nil {
 		fmt.Printf("Error: %s\n", err.Error())
 		return
 	}
 
-	numLoyal, numTraitor := 0, 0
-	for genIdx := range generals {
-		if generals[genIdx].Affinity == byzGen.Loyal {
-			numLoyal++
-		} else {
-			numTraitor++
-		}
-	}
+	result := byzGen.ByzantineGenerals(generals, order)
 
-	result := byzGen.ByzantineGenerals(generals, order, 1)
-
-	for idx := range result.OrderTaken {
+	for idx := 1; idx < len(result.OrderTaken); idx++ {
 		traitorStr := ""
 		if generals[idx].Affinity == byzGen.Traitor {
 			traitorStr = "(traitor) "

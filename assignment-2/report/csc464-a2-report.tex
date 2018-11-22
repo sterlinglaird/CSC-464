@@ -1,0 +1,39 @@
+\documentclass[11pt]{article}
+\usepackage{booktabs}
+\title{CSC 464 Assignment 2}
+\author{Sterling Laird - V00834995}
+\date{November 22th 2018}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+All code in this assignment was written by me, Sterling Laird with all my understanding of the problems coming from \textit{The Byzantine Generals Problem} (Lamport et al.,1982) and from various online sources outlining the algorithms used to solve these problems. All implementations can be found on my Github page \newline(https://github.com/sterlinglaird/CSC-464).\\
+
+
+\pagebreak
+
+\section{Vector Clocks}
+For this assignment I implemented a framework for using vector clocks across any number of threads to enable synchronize/order arbitrary events among one another. I choose to create my implementation in Go as Go makes it easy to communicate across concurrent threads so I would not have to worry about creating my own message passing system for this problem.\\
+\\
+
+To test my implementation I created the program test\_vector\_clock.go to run a selection of examples to see if the implementation produces the right output. Each test uses a fixed number of threads and each thread is given a list of the events that will be used to order the threads. In a real system, each thread could be doing any arbitrary amount of work in between these events and the system would still be ordered correctly, but this in unneeded for these tests. Once all the threads have completed running their events we compare the final vector clocks with the expected results that are already know, if they all match then the test was a success.
+
+\pagebreak
+
+\section{Byzantine Generals}
+In my implementation of the byzantine generals problem, I created a framework that can be used to simulate a collection of generals with arbitrary numbers of traitorous/loyal generals, and generates the order that each general will take using the oral messages algorithm.\\
+\\
+
+To test my implementation of the Byzantine Generals problem I created two programs which are outlined in the following:
+\begin{enumerate}
+\item
+\textbf{test\_byzantine\_generals.go} tests the framework by simulating the problem with different numbers of generals, and with different ratios of traitors to loyal generals. Each instance is considered successful if all loyal generals agree and follow the loyal commanders order when for any number of traitors m, the total number of generals is larger or equal to 3m+1 or generals disagree when the total number of generals is smaller. This testing method is not perfect since it is possible for an instance to be successful when it would be expected to result in a disagreement because the traitorous generals could send messages that cause the rest of the generals to agree, even if that is not the only possibility.
+
+\item
+\textbf{run\_byzantine\_generals.go} runs the simulation on an input set of generals. This program is used to satisfy the assignment requirement to have command line input to run the algorithm. Parameter information can be found by the -h flag and an example simulation is “test\_byzantine\_generals.go -g C:L,L1:L,L2:L,L3:T -o ATTACK”.
+\end{enumerate}
+
+
+\end{document}
