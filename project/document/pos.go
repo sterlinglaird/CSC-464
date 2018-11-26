@@ -1,25 +1,26 @@
 package document
 
 import (
+	"bytes"
 	"fmt"
 	"math"
 	"math/rand"
 )
 
 type Position struct {
-	posId uint
+	posId uint8
 	site  int
 }
 
 //These are the pre-existing lines at the start and end of the document. All following inserts will be somewhere between these
 var (
 	StartPos = []Position{{0, 0}}
-	EndPos   = []Position{{math.MaxUint32, 0}}
+	EndPos   = []Position{{math.MaxUint8, 0}}
 )
 
 //Random number between x and y non inclusive on both ends (x,y)
-func randBetween(x uint, y uint) uint {
-	return uint(rand.Intn(int(y-x-1)) + 1 + int(x))
+func randBetween(x uint8, y uint8) uint8 {
+	return uint8(rand.Intn(int(y-x-1)) + 1 + int(x))
 }
 
 //Returns 1 if x > y  -1 if x < y, and 0 if x = y
@@ -65,12 +66,12 @@ func GeneratePositionBetween(l []Position, r []Position, site int) (pos []Positi
 			continue
 		}
 
-		var posId uint
+		var posId uint8
 		//var lowerBound uint
 
 		var difference = rPos.posId - lPos.posId
 		if difference > 1 {
-			posId = rPos.posId
+			posId = randBetween(lPos.posId, rPos.posId)
 		} else if difference < 1 {
 			panic(fmt.Sprintf("right smaller than left! This should never happen"))
 		} else {
@@ -81,11 +82,27 @@ func GeneratePositionBetween(l []Position, r []Position, site int) (pos []Positi
 			} else if site < rPos.site {
 				pos = append(pos, Position{rPos.posId, site})
 			} else {
-				pos = append(pos, Position{lPos.posId, lPos.site}, Position{randBetween(0, math.MaxUint32), site})
+				pos = append(pos, Position{lPos.posId, lPos.site}, Position{randBetween(0, math.MaxUint8), site})
 			}
 		}
 
 		pos = append(pos, Position{posId, site})
 	}
 	return
+}
+
+func (this *Position) ToString() string {
+	return fmt.Sprintf("<%d,%d>", this.posId, this.site)
+}
+
+func ToString(pos []Position) string {
+	var posBytes bytes.Buffer
+	for posIdx := range pos {
+		if posIdx != 0 {
+			posBytes.WriteString(".")
+		}
+		posBytes.WriteString(pos[posIdx].ToString())
+	}
+
+	return posBytes.String()
 }

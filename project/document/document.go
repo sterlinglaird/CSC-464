@@ -2,6 +2,7 @@ package document
 
 import (
 	"bytes"
+	"fmt"
 )
 
 type Document struct {
@@ -23,7 +24,7 @@ func (this *Document) getLineIndex(pos []Position) (int, bool) {
 		}
 
 		midpoint := len(linesToLook) / 2
-		posCompare := Compare(linesToLook[midpoint].pos, pos)
+		posCompare := Compare(pos, linesToLook[midpoint].pos)
 		if posCompare > 0 {
 			linesToLook = linesToLook[0:midpoint]
 		} else if posCompare < 0 {
@@ -40,11 +41,17 @@ func NewDocument(site int) Document {
 }
 
 func (this *Document) Insert(pos []Position, content string) (err error) {
+	fmt.Printf("Input to Insert() got %s and %s\n", ToString(pos), content)
+	fmt.Printf("%d\n", len(this.lines))
 	if lineIdx, exists := this.getLineIndex(pos); !exists {
 		this.lines = append(this.lines, Line{})
 		copy(this.lines[lineIdx+1:], this.lines[lineIdx:])
 		this.lines[lineIdx] = Line{pos, content}
+		return
 	}
+
+	err = fmt.Errorf("Input to Insert() doesnt exist. Got %s", ToString(pos))
+
 	return
 }
 
@@ -57,6 +64,29 @@ func (this *Document) InsertRight(pos []Position, content string) (err error) {
 }
 
 func (this *Document) Delete(pos []Position) (err error) {
+
+	return
+}
+
+//Returns a moved position based on numMove. Positive is right neg is left. Based on input position
+func (this *Document) Move(pos []Position, moveAmount int) (newPos []Position, err error) {
+	fmt.Printf("Input to Move() got %s and %d\n", ToString(pos), moveAmount)
+	fmt.Printf("%d\n", len(this.lines))
+	if lineIdx, exists := this.getLineIndex(pos); exists {
+		if lineIdx+moveAmount < len(this.lines) {
+			newPos = this.lines[lineIdx+moveAmount].pos
+		} else {
+			err = fmt.Errorf("Input to Move() (moveAmount) Too extreme. Got %d", moveAmount)
+		}
+		return
+	}
+
+	err = fmt.Errorf("Input to Move() doesnt exist. Got %s", ToString(pos))
+
+	return
+}
+
+func (this *Document) MoveRight(pos []Position) (newPos []Position, err error) {
 
 	return
 }

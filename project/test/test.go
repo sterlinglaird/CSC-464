@@ -10,10 +10,30 @@ func main() {
 	site := 1
 	doc := d.NewDocument(site)
 
-	pos, _ := doc.GeneratePositionBetween(d.StartPos, d.EndPos, site)
-	doc.Insert(pos, "h")
+	pos, err := doc.GeneratePositionBetween(d.StartPos, d.EndPos, site)
+	if err != nil {
+		fmt.Printf("Error: %s\n", err.Error())
+	}
 
-	content, _ := doc.GetContent()
+	doc.Insert(pos, "h")
+	if err != nil {
+		fmt.Printf("Error: %s\n", err.Error())
+	}
+
+	pos, err = doc.Move(pos, 2)
+	if err != nil {
+		fmt.Printf("Error: %s\n", err.Error())
+	}
+
+	err = doc.Insert(pos, "2")
+	if err != nil {
+		fmt.Printf("Error: %s\n", err.Error())
+	}
+
+	content, err := doc.GetContent()
+	if err != nil {
+		fmt.Printf("Error: %s\n", err.Error())
+	}
 
 	fmt.Printf("%s\n", content)
 }
