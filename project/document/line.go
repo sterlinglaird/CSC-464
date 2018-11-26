@@ -14,8 +14,10 @@ type Line struct {
 func (this *Line) ToString() string {
 	var posBytes bytes.Buffer
 	for posIdx := range this.pos {
+		if posIdx != 0 {
+			posBytes.WriteString(".")
+		}
 		posBytes.WriteString(this.pos[posIdx].ToString())
-		posBytes.WriteString(".")
 	}
 
 	return fmt.Sprintf("<%s,%s>", posBytes.String(), this.content)

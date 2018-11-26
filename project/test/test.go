@@ -20,12 +20,22 @@ func main() {
 		fmt.Printf("Error: %s\n", err.Error())
 	}
 
-	pos, err = doc.Move(pos, 2)
+	pos, err = doc.Move(pos, 1)
 	if err != nil {
 		fmt.Printf("Error: %s\n", err.Error())
 	}
 
 	err = doc.Insert(pos, "2")
+	if err != nil {
+		fmt.Printf("Error: %s\n", err.Error())
+	}
+
+	pos, err = doc.Move(pos, 1)
+	if err != nil {
+		fmt.Printf("Error: %s\n", err.Error())
+	}
+
+	err = doc.Insert(pos, "w")
 	if err != nil {
 		fmt.Printf("Error: %s\n", err.Error())
 	}

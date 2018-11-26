@@ -36,11 +36,15 @@ func Compare(x []Position, y []Position) int {
 			return 1
 		}
 
-		if xPos > yPos || xSite > ySite {
+		if xPos > yPos {
 			return 1
+		} else if xPos < yPos {
+			return -1
 		}
 
-		if xPos < yPos || xSite < ySite {
+		if xSite > ySite {
+			return 1
+		} else if xSite < ySite {
 			return -1
 		}
 	}
