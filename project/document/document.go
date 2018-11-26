@@ -11,6 +11,7 @@ type Document struct {
 }
 
 //@TODO add vector clock support for unique sites
+//@TODO the start and end lines should be abstracted away more. User shouldnt be aware at all of them. Currently you can move to them just not delete, maybe start with an initial line?
 
 //Returns position in the lines slice, if position doesn't exist then it will return false and the index where it WOULD go
 func (this *Document) getLineIndex(pos []Position) (int, bool) {
@@ -45,7 +46,9 @@ func NewDocument(site int) Document {
 	return doc
 }
 
-func (this *Document) insert(pos []Position, content string) (err error) {
+//@TODO Should this be public?
+func (this *Document) Insert(pos []Position, content string) (err error) {
+	//fmt.Printf("Input to Insert() got %s and '%s'\n", ToString(pos), content)
 	if lineIdx, exists := this.getLineIndex(pos); !exists {
 		//fmt.Printf("%d\n", lineIdx)
 		this.lines = append(this.lines, Line{})
@@ -72,7 +75,7 @@ func (this *Document) InsertRight(pos []Position, content string) (newPos []Posi
 		return
 	}
 
-	err = this.insert(newPos, content)
+	err = this.Insert(newPos, content)
 	return
 }
 
@@ -87,20 +90,51 @@ func (this *Document) InsertLeft(pos []Position, content string) (newPos []Posit
 	if err != nil {
 		return
 	}
-	err = this.insert(newPos, content)
+	err = this.Insert(newPos, content)
 	return
 }
 
 func (this *Document) Delete(pos []Position) (err error) {
+	//fmt.Printf("Input to Delete() got %s\n", ToString(pos))
+	if lineIdx, exists := this.getLineIndex(pos); exists {
+		if lineIdx == 0 || lineIdx == len(this.lines)-1 {
+			err = fmt.Errorf("Input to Delete() cannot be deleted. Got %s", ToString(pos))
+			return
+		}
 
+		copy(this.lines[lineIdx:], this.lines[lineIdx+1:])
+		this.lines = this.lines[:len(this.lines)-1]
+		//fmt.Printf("Now %s\n", this.ToString())
+		return
+	}
+
+	err = fmt.Errorf("Input to Delete() does not exist. Got %s", ToString(pos))
 	return
+}
+
+func (this *Document) DeleteRight(pos []Position) (err error) {
+	toDeletePos, err := this.Move(pos, 1)
+	if err != nil {
+		return
+	}
+
+	return this.Delete(toDeletePos)
+}
+
+func (this *Document) DeleteLeft(pos []Position) (err error) {
+	toDeletePos, err := this.Move(pos, -1)
+	if err != nil {
+		return
+	}
+
+	return this.Delete(toDeletePos)
 }
 
 //Returns a moved position based on numMove. Positive is right neg is left. Based on input position
 func (this *Document) Move(pos []Position, moveAmount int) (newPos []Position, err error) {
 	//fmt.Printf("Input to Move() got %s and %d\n", ToString(pos), moveAmount)
 	if lineIdx, exists := this.getLineIndex(pos); exists {
-		if lineIdx+moveAmount < len(this.lines) {
+		if lineIdx+moveAmount < len(this.lines) && lineIdx+moveAmount >= 0 {
 			newPos = this.lines[lineIdx+moveAmount].pos
 			return
 		} else {
