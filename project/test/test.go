@@ -39,7 +39,8 @@ func addAt(doc []string, s string, at int) []string {
 	}
 }
 
-func testAdd() (err error) {
+//Fuzzes with 100 random insertions
+func fuzzAdd() (err error) {
 	site := 1
 	doc := d.NewDocument(site)
 
@@ -63,7 +64,6 @@ func testAdd() (err error) {
 			addIdx = randBetween(lowIdx, highIdx)
 		}
 
-		//fmt.Printf("Adding right of %d\n", addIdx)
 		//Ground truth
 		groundTruth = addAt(groundTruth, char, addIdx)
 
@@ -76,8 +76,6 @@ func testAdd() (err error) {
 		if err != nil {
 			fmt.Printf("Error: %s\n", err.Error())
 		}
-
-		//fmt.Printf("Ground truth: %s\n", groundTruth)
 
 		currIdx = addIdx + 1
 		highIdx += 1
@@ -107,16 +105,21 @@ func testAdd() (err error) {
 }
 
 func main() {
-	var idx int64 = 0
-	rand.Seed(idx)
-	var err error = testAdd()
-	for err == nil {
-		rand.Seed(idx)
-		//fmt.Println("***** RESTARTING TEST *****")
-		err = testAdd()
+	fmt.Printf("Fuzzing insert...\n")
+	wasErr := false
 
-		idx++
+	//Fuzz test 100 times with a different random seed
+	for idx := 0; idx < 100; idx++ {
+		rand.Seed(int64(idx))
+		err := fuzzAdd()
+		if err != nil {
+			fmt.Printf("FAILED: %s\n", err.Error())
+			fmt.Printf("Seed: %d\n", idx)
+			wasErr = true
+		}
 	}
 
-	fmt.Printf("Error: %s\n", err.Error())
+	if !wasErr {
+		fmt.Printf("PASSED")
+	}
 }
