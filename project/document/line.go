@@ -20,5 +20,5 @@ func (this *Line) ToString() string {
 		posBytes.WriteString(this.pos[posIdx].ToString())
 	}
 
-	return fmt.Sprintf("<%s,%s>", posBytes.String(), this.content)
+	return fmt.Sprintf("<%s,'%s'>", posBytes.String(), this.content)
 }
