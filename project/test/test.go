@@ -55,13 +55,15 @@ func testAdd() (err error) {
 	highIdx := 1
 	currIdx := 1
 	addIdx := currIdx
-	for idx := 0; idx < 5; idx++ {
+	for idx := 0; idx < 100; idx++ {
 		char := randChar()
 
+		addIdx = randBetween(lowIdx, highIdx)
 		for addIdx == currIdx {
 			addIdx = randBetween(lowIdx, highIdx)
 		}
 
+		//fmt.Printf("Adding right of %d\n", addIdx)
 		//Ground truth
 		groundTruth = addAt(groundTruth, char, addIdx)
 
@@ -75,10 +77,19 @@ func testAdd() (err error) {
 			fmt.Printf("Error: %s\n", err.Error())
 		}
 
-		fmt.Printf("Ground truth: %s\n", groundTruth)
+		//fmt.Printf("Ground truth: %s\n", groundTruth)
 
 		currIdx = addIdx + 1
 		highIdx += 1
+
+		testResult, _ := doc.GetContent()
+
+		for idx := range groundTruth {
+			if string(testResult[idx]) != groundTruth[idx] {
+				err = fmt.Errorf("Ground truth: %s\nResult: %s.\nFull doc: %s", groundTruth, testResult, doc.ToString())
+				return
+			}
+		}
 	}
 
 	testResult, err := doc.GetContent()
@@ -101,7 +112,7 @@ func main() {
 	var err error = testAdd()
 	for err == nil {
 		rand.Seed(idx)
-		fmt.Println("***** RESTARTING TEST *****")
+		//fmt.Println("***** RESTARTING TEST *****")
 		err = testAdd()
 
 		idx++

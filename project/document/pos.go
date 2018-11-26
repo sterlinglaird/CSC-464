@@ -24,6 +24,14 @@ func randBetween(x int, y int) int {
 	return int(rand.Intn(int(y-x-1)) + int(x) + 1)
 }
 
+func min(x int, y int) int {
+	if x < y {
+		return x
+	} else {
+		return y
+	}
+}
+
 //Returns 1 if x > y  -1 if x < y, and 0 if x = y
 func Compare(x []Position, y []Position) int {
 	for idx := range x {
@@ -65,64 +73,211 @@ func GeneratePositionBetween(l []Position, r []Position, site int) (pos []Positi
 	//@TODO verify l < r
 
 	fmt.Printf("GeneratePositionBetween %s %s\n", ToString(l), ToString(r))
-	//Loop over left side since we want to make a position bigger than this
-	for idx := 0; idx < len(l); idx++ {
-		lPos := l[idx]
-		rPos := r[idx] //@TODO Could this indec out of bounds ??
 
-		//When they are the same we just go down a digit
-		if rPos.posId == lPos.posId && rPos.site == lPos.site {
-			pos = append(pos, Position{rPos.posId, rPos.site})
-			continue
-		}
+	diffenceLen := len(r) - len(l)
+	smallestLen := min(len(r), len(l))
+	addFinalDigit := false
+	var lastIdx int
+
+	for idx := 0; idx < smallestLen; idx++ {
+		lastIdx = idx
+
+		lPos := l[idx]
+		rPos := r[idx]
+
 		var difference = rPos.posId - lPos.posId
-		if difference > 1 {
-			pos = append(pos, Position{uint8(randBetween(int(lPos.posId), int(rPos.posId))), site})
-		} else if difference < 1 {
-			if rPos.site > site && lPos.site < site {
+
+		if difference == 0 {
+			//Add the digit, same so it doesnt matter
+			pos = append(pos, Position{rPos.posId, rPos.site})
+			addFinalDigit = true
+		} else if difference == 1 {
+			//pos = append(pos, Position{lPos.posId, lPos.site})
+			if idx < len(l)-1 {
 				pos = append(pos, Position{lPos.posId, lPos.site})
+				addFinalDigit = true
+				break
 			} else {
 				pos = append(pos, Position{lPos.posId, lPos.site})
-				pos = append(pos, Position{uint8(randBetween(0, math.MaxUint8)), site})
+				pos = append(pos, Position{uint8(randBetween(0, math.MaxUint8)), lPos.site})
+				addFinalDigit = false
+			}
+		} else if difference > 1 {
+			//pos = append(pos, Position{lPos.posId, lPos.site})
+			if idx < len(l)-1 {
+				pos = append(pos, Position{lPos.posId, lPos.site})
+				addFinalDigit = true
+				break
+			} else {
+				pos = append(pos, Position{uint8(randBetween(int(lPos.posId), int(rPos.posId))), lPos.site})
+				addFinalDigit = false
 			}
 		} else {
-			//When we have to split an identical position id then our actions depend on the site
-			//I believe this is because we just want some consistent behavior that we can count on, the paper didnt really explain...
-			if site > lPos.site {
-				pos = append(pos, Position{lPos.posId, site})
-			} else if site < rPos.site {
-				pos = append(pos, Position{rPos.posId, site})
-			} else {
-				pos = append(pos, Position{lPos.posId, lPos.site}, Position{uint8(randBetween(0, math.MaxUint8)), site})
-			}
+			panic("Difference GeneratePositionBetween() is less than 0! in This should never happen")
 		}
 	}
 
-	if len(l) < len(r) {
-		var rightNextId uint8
-		for idx := 0; idx < len(r)-len(l); idx++ {
-			rightNextId = r[len(l)+idx].posId
-			fmt.Printf("%d\n", rightNextId)
-			if rightNextId == 1 || rightNextId == 0 {
+	if addFinalDigit {
+		if diffenceLen > 0 {
+			nextRightPos := r[lastIdx+1].posId
+			for nextRightPos == 0 {
 				pos = append(pos, Position{0, site})
-				fmt.Printf("appended %s\n", ToString(pos))
-				rightNextId = math.MaxUint8
-			} else {
-				break
+				lastIdx++
+				nextRightPos = r[lastIdx].posId
 			}
+
+			if nextRightPos == 1 {
+				pos = append(pos, Position{0, site})
+				pos = append(pos, Position{uint8(randBetween(0, math.MaxUint8)), site})
+			} else {
+				pos = append(pos, Position{uint8(randBetween(0, int(nextRightPos))), site})
+			}
+		} else if diffenceLen < 0 {
+			nextLeftPos := l[lastIdx+1].posId
+			for nextLeftPos == math.MaxUint8 {
+				pos = append(pos, Position{math.MaxUint8, site})
+				lastIdx++
+				nextLeftPos = l[lastIdx].posId
+			}
+
+			//fmt.Printf("nextLeftPos: %d\n", nextLeftPos)
+			if nextLeftPos == math.MaxUint8-1 {
+				pos = append(pos, Position{math.MaxUint8, site})
+				pos = append(pos, Position{uint8(randBetween(0, math.MaxUint8)), site})
+			} else {
+				pos = append(pos, Position{uint8(randBetween(int(nextLeftPos), math.MaxUint8)), site})
+			}
+		} else {
+			//No need to do anything when they are the same length
 		}
-
-		pos = append(pos, Position{uint8(randBetween(0, int(rightNextId))), site})
-
-		// //Edge case, we need to add a new digit
-		// rightNextId := r[len(l)].posId
-		// if rightNextId == 1 || rightNextId == 0 {
-		// 	pos = append(pos, Position{0, site})
-		// 	pos = append(pos, Position{uint8(randBetween(0, math.MaxUint8)), site})
-		// } else {
-		// 	pos = append(pos, Position{uint8(randBetween(0, int(rightNextId))), site})
-		// }
 	}
+
+	// lIdx := 0
+	// rIdx := 0
+	// for {
+	// 	lPos := l[lIdx]
+	// 	rPos := r[rIdx]
+
+	// 	if rPos.posId == lPos.posId && rPos.site == lPos.site {
+	// 		pos = append(pos, Position{rPos.posId, rPos.site})
+	// 	} else {
+	// 		var difference = rPos.posId - lPos.posId
+	// 		if difference > 1 {
+	// 			pos = append(pos, Position{uint8(randBetween(int(lPos.posId), int(rPos.posId))), site})
+	// 			break
+	// 		} else if difference == 0 {
+	// 			panic("Hello")
+	// 			if rPos.site > site && lPos.site < site {
+	// 				pos = append(pos, Position{lPos.posId, lPos.site})
+	// 			} else {
+	// 				pos = append(pos, Position{lPos.posId, lPos.site})
+	// 				pos = append(pos, Position{uint8(randBetween(0, math.MaxUint8)), site})
+	// 			}
+	// 		} else if difference == 1 {
+	// 			//When we have to split an identical position id then our actions depend on the site
+	// 			//I believe this is because we just want some consistent behavior that we can count on, the paper didnt really explain...
+	// 			if site > lPos.site {
+	// 				pos = append(pos, Position{lPos.posId, site})
+	// 			} else if site < rPos.site {
+	// 				pos = append(pos, Position{rPos.posId, site})
+	// 			} else {
+	// 				pos = append(pos, Position{lPos.posId, lPos.site}, Position{uint8(randBetween(0, math.MaxUint8)), site})
+	// 			}
+	// 			break
+	// 		} else {
+	// 			panic("Difference GeneratePositionBetween() is less than 0! in This should never happen")
+	// 		}
+	// 	}
+
+	// 	atLEnd := lIdx == len(l)-1
+	// 	atREnd := rIdx == len(r)-1
+
+	// 	if !atLEnd {
+	// 		lIdx++
+	// 	}
+
+	// 	if !atREnd {
+	// 		rIdx++
+	// 	}
+
+	// 	if atLEnd && atREnd {
+	// 		break
+	// 	}
+
+	// }
+
+	///ADSASD
+
+	// for idx := 0; idx < len(l); idx++ {
+	// 	if idx > len(r)-1 {
+	// 		break
+	// 	}
+
+	// 	lPos := l[idx]
+	// 	rPos := r[idx] //@TODO Could this index out of bounds ??
+
+	// 	//When they are the same we just go down a digit
+	// 	if rPos.posId == lPos.posId && rPos.site == lPos.site {
+	// 		pos = append(pos, Position{rPos.posId, rPos.site})
+	// 		continue
+	// 	}
+	// 	var difference = rPos.posId - lPos.posId
+	// 	if difference > 1 {
+	// 		pos = append(pos, Position{uint8(randBetween(int(lPos.posId), int(rPos.posId))), site})
+	// 	} else if difference < 1 {
+	// 		if rPos.site > site && lPos.site < site {
+	// 			pos = append(pos, Position{lPos.posId, lPos.site})
+	// 		} else {
+	// 			pos = append(pos, Position{lPos.posId, lPos.site})
+	// 			pos = append(pos, Position{uint8(randBetween(0, math.MaxUint8)), site})
+	// 		}
+	// 	} else {
+	// 		//When we have to split an identical position id then our actions depend on the site
+	// 		//I believe this is because we just want some consistent behavior that we can count on, the paper didnt really explain...
+	// 		if site > lPos.site {
+	// 			pos = append(pos, Position{lPos.posId, site})
+	// 		} else if site < rPos.site {
+	// 			pos = append(pos, Position{rPos.posId, site})
+	// 		} else {
+	// 			pos = append(pos, Position{lPos.posId, lPos.site})
+	// 			pos = append(pos, Position{uint8(randBetween(0, math.MaxUint8)), site})
+	// 		}
+	// 	}
+	// }
+
+	// if len(r) < len(l) {
+	// 	var leftNextId uint8
+	// 	for idx := 0; idx < len(l)-len(r); idx++ {
+	// 		leftNextId = l[len(r)+idx].posId
+	// 		//fmt.Printf("%d\n", rightNextId)
+	// 		if leftNextId == math.MaxUint8 {
+	// 			pos = append(pos, Position{math.MaxUint8, site})
+	// 			//fmt.Printf("appended %s\n", ToString(pos))
+	// 			leftNextId = 0
+	// 		} else {
+	// 			break
+	// 		}
+	// 	}
+
+	// 	pos = append(pos, Position{uint8(randBetween(int(leftNextId), math.MaxUint8)), site})
+	// }
+
+	// if len(l) < len(r) {
+	// 	var rightNextId uint8
+	// 	for idx := 0; idx < len(r)-len(l); idx++ {
+	// 		rightNextId = r[len(l)+idx].posId
+	// 		//fmt.Printf("%d\n", rightNextId)
+	// 		if rightNextId == 1 || rightNextId == 0 {
+	// 			pos = append(pos, Position{0, site})
+	// 			//fmt.Printf("appended %s\n", ToString(pos))
+	// 			rightNextId = math.MaxUint8
+	// 		} else {
+	// 			break
+	// 		}
+	// 	}
+
+	// 	pos = append(pos, Position{uint8(randBetween(0, int(rightNextId))), site})
+	// }
 
 	fmt.Printf("Created %s\n", ToString(pos))
 	return

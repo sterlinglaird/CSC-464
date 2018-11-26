@@ -51,7 +51,7 @@ func (this *Document) insert(pos []Position, content string) (err error) {
 		this.lines = append(this.lines, Line{})
 		copy(this.lines[lineIdx+1:], this.lines[lineIdx:])
 		this.lines[lineIdx] = Line{pos, content}
-		fmt.Printf("Now %s\n", this.ToString())
+		//fmt.Printf("Now %s\n", this.ToString())
 		return
 	}
 
@@ -61,7 +61,7 @@ func (this *Document) insert(pos []Position, content string) (err error) {
 }
 
 func (this *Document) InsertRight(pos []Position, content string) (newPos []Position, err error) {
-	fmt.Printf("Input to InsertRight() got %s and '%s'\n", ToString(pos), content)
+	//fmt.Printf("Input to InsertRight() got %s and '%s'\n", ToString(pos), content)
 	rightPos, err := this.Move(pos, 1)
 	if err != nil {
 		return
@@ -77,7 +77,7 @@ func (this *Document) InsertRight(pos []Position, content string) (newPos []Posi
 }
 
 func (this *Document) InsertLeft(pos []Position, content string) (newPos []Position, err error) {
-	fmt.Printf("Input to InsertLeft() got %s and '%s'\n", ToString(pos), content)
+	//fmt.Printf("Input to InsertLeft() got %s and '%s'\n", ToString(pos), content)
 	leftPos, err := this.Move(pos, -1)
 	if err != nil {
 		return
@@ -98,7 +98,7 @@ func (this *Document) Delete(pos []Position) (err error) {
 
 //Returns a moved position based on numMove. Positive is right neg is left. Based on input position
 func (this *Document) Move(pos []Position, moveAmount int) (newPos []Position, err error) {
-	fmt.Printf("Input to Move() got %s and %d\n", ToString(pos), moveAmount)
+	//fmt.Printf("Input to Move() got %s and %d\n", ToString(pos), moveAmount)
 	if lineIdx, exists := this.getLineIndex(pos); exists {
 		if lineIdx+moveAmount < len(this.lines) {
 			newPos = this.lines[lineIdx+moveAmount].pos
