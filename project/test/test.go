@@ -15,7 +15,6 @@ func randChar() string {
 
 //Random number between x and y inclusive on both ends [x,y]
 func randBetween(x int, y int) int {
-	//fmt.Printf("%d %d\n", x, y)
 	return int(rand.Intn(int(y-x+1)) + int(x))
 }
 
@@ -53,7 +52,7 @@ func delAt(doc []string, at int) []string {
 	}
 }
 
-//Fuzzes with 100 random insertions
+//Fuzzes with 1000 random insertions
 func fuzzInsert() (err error) {
 	site := 1
 	doc := d.NewDocument(site)
@@ -69,7 +68,7 @@ func fuzzInsert() (err error) {
 	lowIdx := 0
 	highIdx := 1
 	currIdx := 1
-	for idx := 0; idx < 100; idx++ {
+	for idx := 0; idx < 1000; idx++ {
 		char := randChar()
 
 		addIdx := randBetween(lowIdx, highIdx)
@@ -117,6 +116,7 @@ func fuzzInsert() (err error) {
 	return
 }
 
+//Fuzzes with 1000 random insertions and deletions
 func fuzzInsertDelete() (err error) {
 	site := 1
 	doc := d.NewDocument(site)
@@ -136,8 +136,8 @@ func fuzzInsertDelete() (err error) {
 	currIdx := 1
 	//addIdx := currIdx
 
-	for idx := 0; idx < 100; idx++ {
-		//Do insert 2x more often than delete, but always insert if we cant delete
+	for idx := 0; idx < 1000; idx++ {
+		//Do insert and delete randomly, but always insert if we cant delete
 		if randBetween(0, 1) == 0 || highIdx-lowIdx == 1 {
 			char := randChar()
 
