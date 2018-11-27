@@ -166,6 +166,7 @@ func fuzzInsertDelete() (err error) {
 			highIdx += 1
 		} else {
 
+			//Cannot use the full range to delete, unlike insert
 			delIdx := randBetween(lowIdx, highIdx-1)
 			for delIdx == currIdx {
 				delIdx = randBetween(lowIdx, highIdx-1)
@@ -220,8 +221,8 @@ func main() {
 	fmt.Printf("Fuzzing insert...\n")
 	wasErr := false
 
-	//Fuzz test 100 times with a different random seed
-	for idx := 0; idx < 100; idx++ {
+	//Fuzz test 1000 times with a different random seed
+	for idx := 0; idx < 1000; idx++ {
 		rand.Seed(int64(idx))
 		err := fuzzInsert()
 		if err != nil {
@@ -239,8 +240,8 @@ func main() {
 	fmt.Printf("Fuzzing insert and delete...\n")
 	wasErr = false
 
-	//Fuzz test 100 times with a different random seed
-	for idx := 0; idx < 100; idx++ {
+	//Fuzz test 1000 times with a different random seed
+	for idx := 0; idx < 1000; idx++ {
 		rand.Seed(int64(idx))
 		err := fuzzInsertDelete()
 		if err != nil {
