@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"strconv"
+	"strings"
 )
 
 type Position struct {
@@ -53,6 +55,7 @@ func Compare(x []Position, y []Position) int {
 			return -1
 		}
 
+		//@TODO maybe this should go outside of the for loop? Look at the definition in the paper again
 		// if xSite > ySite {
 		// 	return 1
 		// } else if xSite < ySite {
@@ -171,4 +174,17 @@ func ToString(pos []Position) string {
 	}
 
 	return posBytes.String()
+}
+
+func FromString(str string) (pos Position) {
+	str = str[1 : len(str)-2] //Remove first and last indices
+	sep := strings.Split(str, ",")
+
+	posIdParsed, _ := strconv.ParseUint(sep[0], 10, 8)
+	siteParsed, _ := strconv.ParseUint(sep[1], 10, 32)
+
+	pos.posId = uint8(posIdParsed)
+	pos.site = int(siteParsed)
+
+	return
 }

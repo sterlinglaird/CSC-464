@@ -12,6 +12,8 @@ type Document struct {
 
 //@TODO add vector clock support for unique sites
 //@TODO the start and end lines should be abstracted away more. User shouldnt be aware at all of them. Currently you can move to them just not delete, maybe start with an initial line?
+//@TODO Maybe only use tombstone/site id for deleted positions instead of actually deleting them
+//@TODO breaks when commas,periods,brackets etc appear in text
 
 //Returns position in the lines slice, if position doesn't exist then it will return false and the index where it WOULD go
 func (this *Document) GetLineIndex(pos []Position) (int, bool) {
@@ -28,7 +30,7 @@ func (this *Document) GetLineIndex(pos []Position) (int, bool) {
 		midpoint := len(linesToLook) / 2
 
 		//fmt.Printf("mid:%d toMid:%d\n", midpoint, toMidpoint)
-		posCompare := Compare(pos, linesToLook[midpoint].pos)
+		posCompare := Compare(pos, linesToLook[midpoint].Pos)
 		if posCompare < 0 {
 			linesToLook = linesToLook[0:midpoint]
 		} else if posCompare > 0 {
@@ -139,7 +141,7 @@ func (this *Document) Move(pos []Position, moveAmount int) (newPos []Position, e
 	//log.Printf("Input to Move() got %s and %d\n", ToString(pos), moveAmount)
 	if lineIdx, exists := this.GetLineIndex(pos); exists {
 		if lineIdx+moveAmount < len(this.lines) && lineIdx+moveAmount >= 0 {
-			newPos = this.lines[lineIdx+moveAmount].pos
+			newPos = this.lines[lineIdx+moveAmount].Pos
 			return
 		} else {
 			err = fmt.Errorf("Input to Move() (moveAmount) Too extreme. Got %d, currernt position %s", moveAmount, ToString(pos))
@@ -156,7 +158,7 @@ func (this *Document) MoveRight(pos []Position) (newPos []Position, err error) {
 	//fmt.Printf("Input to MoveRight() got %s\n", ToString(pos))
 	if lineIdx, exists := this.GetLineIndex(pos); exists {
 		if lineIdx+1 < len(this.lines) {
-			newPos, err = GeneratePositionBetween(pos, this.lines[lineIdx+1].pos, this.site)
+			newPos, err = GeneratePositionBetween(pos, this.lines[lineIdx+1].Pos, this.site)
 			return
 		} else {
 			err = fmt.Errorf("Cannot MoveRight()")
@@ -172,7 +174,7 @@ func (this *Document) MoveLeft(pos []Position) (newPos []Position, err error) {
 	//fmt.Printf("Input to MoveLeft() got %s\n", ToString(pos))
 	if lineIdx, exists := this.GetLineIndex(pos); exists {
 		if lineIdx-1 < len(this.lines) {
-			newPos, err = GeneratePositionBetween(pos, this.lines[lineIdx-1].pos, this.site)
+			newPos, err = GeneratePositionBetween(pos, this.lines[lineIdx-1].Pos, this.site)
 			return
 		} else {
 			err = fmt.Errorf("Cannot MoveLeft()")
@@ -187,7 +189,7 @@ func (this *Document) MoveLeft(pos []Position) (newPos []Position, err error) {
 func (this *Document) GetContent() (content string, err error) {
 	var contentBytes bytes.Buffer
 	for lineIdx := range this.lines {
-		contentBytes.WriteString(this.lines[lineIdx].content)
+		contentBytes.WriteString(this.lines[lineIdx].Content)
 	}
 
 	content = contentBytes.String()
@@ -196,7 +198,16 @@ func (this *Document) GetContent() (content string, err error) {
 }
 
 func (this *Document) GetContentAt(pos []Position) (content string, err error) {
+	return
+}
 
+func (this *Document) GetLength() (length int, err error) {
+	length = len(this.lines)
+	return
+}
+
+func (this *Document) GetLine(idx int) (line Line) {
+	line = this.lines[idx]
 	return
 }
 

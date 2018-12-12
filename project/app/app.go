@@ -1,113 +1,222 @@
 package main
 
 import (
-	"fmt"
+	"bufio"
 	"log"
+	"net"
 	"os"
 
 	"../document"
-	"github.com/jroimartin/gocui"
+	termbox "github.com/nsf/termbox-go"
 )
 
 var doc = document.NewDocument(1)
-var currentPos = document.StartPos
+var currentPos = document.EndPos
 
-type Editor struct{}
+var connections []net.Conn
 
-func (e *Editor) Edit(v *gocui.View, key gocui.Key, ch rune, mod gocui.Modifier) {
-	var err error
-	log.Printf("Current pos %s\n", document.ToString(currentPos))
-	switch {
-	case ch != 0 && mod == 0:
-		v.EditWrite(ch)
-		currentPos, err = doc.InsertRight(currentPos, string(ch))
-	case key == gocui.KeySpace:
-		v.EditWrite(' ')
-	case key == gocui.KeyBackspace || key == gocui.KeyBackspace2:
-		v.EditDelete(true)
-		currentPos, err = doc.Move(currentPos, 1)
-		err = doc.DeleteLeft(currentPos)
-	// case key == gocui.KeyDelete:
-	// 	v.EditDelete(false)
-	// 	err = doc.DeleteRight(currentPos)
-	// case key == gocui.KeyInsert:
-	// 	v.Overwrite = !v.Overwrite
-	// case key == gocui.KeyEnter:
-	// 	v.EditNewLine()
-	// case key == gocui.KeyArrowDown:
-	// 	v.MoveCursor(0, 1, false)
-	// case key == gocui.KeyArrowUp:
-	// 	v.MoveCursor(0, -1, false)
-	case key == gocui.KeyArrowLeft:
-		v.MoveCursor(-1, 0, false)
-		currentPos, err = doc.Move(currentPos, -1)
-	case key == gocui.KeyArrowRight:
-		currentPos, err = doc.Move(currentPos, 1)
-		v.MoveCursor(1, 0, false)
-	}
+func render() {
+	width, _ := termbox.Size() //@TODO should deal with height
+	termbox.Clear(termbox.ColorBlack, termbox.ColorWhite)
 
-	log.Printf("Now %s\n", doc.ToString())
+	currentIdx, _ := doc.GetLineIndex(currentPos)
+	currentIdx-- //Keeps the rendered cursor in the expected location
 
+	content, err := doc.GetContent()
 	if err != nil {
-		log.Printf("Error in edit(): %s\n", err.Error())
-		log.Printf("%s\n", doc.ToString())
 		panic(err)
 	}
-}
 
-func quit(g *gocui.Gui, v *gocui.View) error {
-	return gocui.ErrQuit
-}
+	runes := []rune(content)
+	currX := 0
+	currY := 0
 
-func keybindings(g *gocui.Gui) error {
-	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
-		return err
+	if currentIdx == 0 {
+		termbox.SetCursor(0, 0)
 	}
-	return nil
-}
+	//fmt.Println(width)
+	for idx := range runes {
+		ch := runes[idx]
 
-func layout(g *gocui.Gui) error {
-	maxX, maxY := g.Size()
-	if v, err := g.SetView("main", 0, 0, maxX, maxY); err != nil {
-		if err != gocui.ErrUnknownView {
-			return err
+		if ch == '\n' {
+			ch = '\x00'
+			currY++
+			currX = 0
+		} else {
+			termbox.SetCell(currX, currY, ch, termbox.ColorBlack, termbox.ColorWhite)
+			currX++
 		}
 
-		v.Editable = true
-		v.Wrap = true
-		v.Editor = &Editor{}
-		if _, err := g.SetCurrentView("main"); err != nil {
-			return err
+		if currX >= width {
+			currY++
+			currX = 0
+		}
+
+		//When currentIdx is at the end it is beyond the range of displayed runes because of the empty string at EndPos
+		if idx == currentIdx-1 {
+			//fmt.Println("here")
+			termbox.SetCursor(currX, currY)
 		}
 	}
 
-	return nil
+	termbox.Flush()
+}
+
+func runUi() {
+	err := termbox.Init()
+	if err != nil {
+		panic(err)
+	}
+	defer termbox.Close()
+
+	//width, _ := termbox.Size() //@TODO should deal with height
+
+	for {
+
+		currentIdx, _ := doc.GetLineIndex(currentPos)
+		currentIdx-- //To mirror what happens graphically
+
+		render()
+
+		contentSize, _ := doc.GetLength()
+
+		e := termbox.PollEvent()
+		switch {
+		// Quit
+		case e.Key == termbox.KeyCtrlC:
+			os.Exit(0)
+		case e.Key == termbox.KeyBackspace || e.Key == termbox.KeyBackspace2:
+			err = doc.DeleteLeft(currentPos)
+
+			deletedIdx, _ := doc.GetLineIndex(currentPos)
+			deletedLine := doc.GetLine(deletedIdx)
+			toSendBytes := append([]byte{2}, deletedLine.ToBytes()...) //1 means delete
+
+			for connIdx := range connections {
+				connections[connIdx].Write(toSendBytes)
+			}
+		case e.Key == termbox.KeyArrowLeft:
+			if currentIdx > 0 {
+				currentPos, err = doc.Move(currentPos, -1)
+			}
+		case e.Key == termbox.KeyArrowRight:
+			if currentIdx < contentSize-2 { //-2 for the Start and End Pos
+				currentPos, err = doc.Move(currentPos, 1)
+			}
+		// case e.Key == termbox.KeyArrowUp:
+		// 	toMove := currentIdx % width
+		// 	if currentIdx-width > 0 {
+		// 		currentPos, err = doc.Move(currentPos, -toMove)
+		// 	}
+		// case e.Key == termbox.KeyArrowDown:
+		// 	if currentIdx+width < contentSize {
+		// 		currentPos, _ = doc.Move(currentPos, +width)
+		// 	}
+		case e.Key == termbox.KeyEnter:
+			//To do this we need to change the delimeter for the messages
+			insertChar('\n')
+		case e.Key == termbox.KeySpace:
+			insertChar(' ')
+		case e.Ch == '.' || e.Ch == '<' || e.Ch == '>': //Forbidden chars
+
+		case e.Ch != 0: //Characters
+			insertChar(e.Ch)
+		default:
+		}
+
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+func insertChar(ch rune) {
+	newPos, err := doc.InsertLeft(currentPos, string(ch))
+	if err != nil {
+		panic(err)
+	}
+
+	newIdx, _ := doc.GetLineIndex(newPos)
+	newLine := doc.GetLine(newIdx)
+	toSendBytes := append([]byte{1}, newLine.ToBytes()...) //0 means insert
+
+	for connIdx := range connections {
+		connections[connIdx].Write(toSendBytes)
+	}
+}
+
+func listen(listenPort string) {
+	listener, err := net.Listen("tcp", ":"+listenPort)
+	if err != nil {
+		panic(err)
+	}
+
+	for {
+		connection, err := listener.Accept()
+		if err != nil {
+			panic(err)
+		}
+
+		connections = append(connections, connection)
+
+		go handleConnection(connection)
+	}
+}
+
+func handleConnection(connection net.Conn) {
+
+	// Begin reading the data
+	reader := bufio.NewReader(connection)
+	for {
+		bytes, err := reader.ReadBytes(0)
+		if err != nil {
+			panic(err)
+		}
+
+		operation := bytes[0]
+
+		line := document.FromBytes(bytes[1 : len(bytes)-1]) //Remove the operation and delimiter
+		switch operation {
+		case 1:
+			doc.Insert(line.Pos, line.Content)
+		case 2:
+			doc.DeleteLeft(line.Pos)
+		}
+
+		render()
+
+	}
+
+	panic("Connection dropped!")
 }
 
 func main() {
+	listenPort := os.Args[1]
+
+	connectAddress := ""
+	if len(os.Args) > 2 {
+		connectAddress = os.Args[2]
+	}
+
+	go listen(listenPort)
+
+	if connectAddress != "" {
+		connection, err := net.Dial("tcp", connectAddress)
+		if err != nil {
+			panic(err)
+		}
+
+		connections = append(connections, connection)
+
+		go handleConnection(connection)
+		// for {
+		// }
+	}
+
 	var f, _ = os.OpenFile("testlogfile.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	defer f.Close()
 
 	log.SetOutput(f)
 
-	g, err := gocui.NewGui(gocui.OutputNormal)
-	if err != nil {
-		panic(err)
-	}
-	defer g.Close()
-
-	g.Cursor = true
-
-	g.SetManagerFunc(layout)
-
-	if err := keybindings(g); err != nil {
-		panic(err)
-	}
-
-	if err := g.MainLoop(); err != nil && err != gocui.ErrQuit {
-		fmt.Printf("Error in main loop: %s\n", err.Error())
-		fmt.Printf("%s\n", doc.ToString())
-		return
-	}
-
+	runUi()
 }
