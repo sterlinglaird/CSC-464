@@ -44,8 +44,8 @@ func Compare(x []Position, y []Position) int {
 		xPos := x[idx].posId
 		yPos := y[idx].posId
 
-		xSite := x[idx].site
-		ySite := y[idx].site
+		// xSite := x[idx].site
+		// ySite := y[idx].site
 
 		if xPos > yPos {
 			return 1
@@ -53,11 +53,11 @@ func Compare(x []Position, y []Position) int {
 			return -1
 		}
 
-		if xSite > ySite {
-			return 1
-		} else if xSite < ySite {
-			return -1
-		}
+		// if xSite > ySite {
+		// 	return 1
+		// } else if xSite < ySite {
+		// 	return -1
+		// }
 	}
 
 	if len(x) < len(y) {
@@ -116,34 +116,36 @@ func GeneratePositionBetween(l []Position, r []Position, site int) (pos []Positi
 				addFinalDigit = false
 			}
 		} else {
-			panic("Difference GeneratePositionBetween() is less than 0! in This should never happen")
+			panic("Difference GeneratePositionBetween() is less than 0! This should never happen")
 		}
 	}
 
 	if addFinalDigit {
 		if diffenceLen < 0 || (lastIdx < len(r)-1 && lastIdx < len(l)-1) {
-			nextLeftPos := l[lastIdx+1].posId
+			lastIdx++
+			nextLeftPos := l[lastIdx].posId
 			for nextLeftPos == math.MaxUint8 {
 				pos = append(pos, Position{math.MaxUint8, site})
 				lastIdx++
 				nextLeftPos = l[lastIdx].posId
 			}
 
-			if nextLeftPos == math.MaxUint8-1 {
+			if nextLeftPos == math.MaxUint8 || nextLeftPos == math.MaxUint8-1 {
 				pos = append(pos, Position{math.MaxUint8, site})
 				pos = append(pos, Position{uint8(randBetween(0, math.MaxUint8)), site})
 			} else {
 				pos = append(pos, Position{uint8(randBetween(int(nextLeftPos), math.MaxUint8)), site})
 			}
 		} else if diffenceLen > 0 {
-			nextRightPos := r[lastIdx+1].posId
+			lastIdx++
+			nextRightPos := r[lastIdx].posId
 			for nextRightPos == 0 {
 				pos = append(pos, Position{0, site})
 				lastIdx++
 				nextRightPos = r[lastIdx].posId
 			}
 
-			if nextRightPos == 1 {
+			if nextRightPos == 0 || nextRightPos == 1 {
 				pos = append(pos, Position{0, site})
 				pos = append(pos, Position{uint8(randBetween(0, math.MaxUint8)), site})
 			} else {
