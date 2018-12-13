@@ -138,7 +138,7 @@ func insertChar(ch rune) {
 
 	newIdx, _ := doc.GetLineIndex(newPos)
 	newLine := doc.GetLine(newIdx)
-	toSendBytes := append([]byte{1}, newLine.ToBytes()...) //0 means insert
+	toSendBytes := append([]byte{1}, newLine.ToBytes()...) //1 means insert
 
 	for connIdx := range connections {
 		connections[connIdx].Write(toSendBytes)
@@ -158,6 +158,16 @@ func listen(listenPort string) {
 		}
 
 		connections = append(connections, connection)
+
+		numChars, _ := doc.GetLength()
+		numChars -= 2
+
+		// for idx := 1; idx < numChars; idx++ {
+		// 	newLine := doc.GetLine(idx)
+		// 	toSendBytes := append([]byte{1}, newLine.ToBytes()...) //1 means insert
+
+		// 	connection.Write(toSendBytes)
+		// }
 
 		go handleConnection(connection)
 	}
@@ -186,22 +196,15 @@ func handleConnection(connection net.Conn) {
 		render()
 
 	}
-
-	panic("Connection dropped!")
 }
 
 func main() {
 	listenPort := os.Args[1]
 
-	connectAddress := ""
-	if len(os.Args) > 2 {
-		connectAddress = os.Args[2]
-	}
-
 	go listen(listenPort)
 
-	if connectAddress != "" {
-		connection, err := net.Dial("tcp", connectAddress)
+	for idx := 2; idx < len(os.Args); idx++ {
+		connection, err := net.Dial("tcp", os.Args[idx])
 		if err != nil {
 			panic(err)
 		}
@@ -209,8 +212,6 @@ func main() {
 		connections = append(connections, connection)
 
 		go handleConnection(connection)
-		// for {
-		// }
 	}
 
 	var f, _ = os.OpenFile("testlogfile.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
