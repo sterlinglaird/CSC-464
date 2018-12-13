@@ -24,6 +24,7 @@ func (this *Document) GetLineIndex(pos []Position) (int, bool) {
 	for {
 		if len(linesToLook) == 0 {
 			//fmt.Println("ended")
+			//fmt.Printf("Returned idx to: %s\n", ToString(this.lines[toMidpoint].Pos))
 			return toMidpoint, false
 		}
 
@@ -44,7 +45,6 @@ func (this *Document) GetLineIndex(pos []Position) (int, bool) {
 
 func NewDocument(site int) Document {
 	doc := Document{[]Line{Line{StartPos, ""}, Line{EndPos, ""}}, site}
-	//doc.InsertRight(StartPos, " ")
 	return doc
 }
 
@@ -52,11 +52,9 @@ func NewDocument(site int) Document {
 func (this *Document) Insert(pos []Position, content string) (err error) {
 	//fmt.Printf("Input to Insert() got %s and '%s'\n", ToString(pos), content)
 	if lineIdx, exists := this.GetLineIndex(pos); !exists {
-		//fmt.Printf("%d\n", lineIdx)
 		this.lines = append(this.lines, Line{})
 		copy(this.lines[lineIdx+1:], this.lines[lineIdx:])
 		this.lines[lineIdx] = Line{pos, content}
-		//log.Printf("Now %s\n", this.ToString())
 		//fmt.Printf("Now %s\n", this.ToString())
 		this.site++
 		return

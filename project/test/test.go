@@ -199,18 +199,8 @@ func fuzzInsertDelete() (err error) {
 		for idx := range groundTruth {
 			if len(testResult) != len(groundTruth) || string(testResult[idx]) != groundTruth[idx] {
 				err = fmt.Errorf("Ground truth: %s\nResult: %s.\nFull doc: %s", groundTruth, testResult, doc.ToString())
+				return
 			}
-		}
-	}
-
-	testResult, err := doc.GetContent()
-	if err != nil {
-		fmt.Printf("Error: %s\n", err.Error())
-	}
-
-	for idx := range groundTruth {
-		if len(testResult) != len(groundTruth) || string(testResult[idx]) != groundTruth[idx] {
-			err = fmt.Errorf("Ground truth: %s\nResult: %s.\nFull doc: %s", groundTruth, testResult, doc.ToString())
 		}
 	}
 

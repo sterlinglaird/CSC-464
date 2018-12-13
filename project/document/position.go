@@ -46,26 +46,47 @@ func Compare(x []Position, y []Position) int {
 		xPos := x[idx].posId
 		yPos := y[idx].posId
 
-		// xSite := x[idx].site
-		// ySite := y[idx].site
-
 		if xPos > yPos {
 			return 1
 		} else if xPos < yPos {
 			return -1
 		}
-
-		//@TODO maybe this should go outside of the for loop? Look at the definition in the paper again
-		// if xSite > ySite {
-		// 	return 1
-		// } else if xSite < ySite {
-		// 	return -1
-		// }
 	}
 
 	if len(x) < len(y) {
 		return -1
 	}
+
+	// fmt.Printf("%s %s\n", ToString(x), ToString(y))
+
+	// for idx := range x {
+	// 	if idx == len(y) {
+	// 		return 1
+	// 	}
+
+	// 	xPos := x[idx].posId
+	// 	yPos := y[idx].posId
+
+	// 	xSite := x[idx].site
+	// 	ySite := y[idx].site
+
+	// 	if xPos == yPos && xSite == ySite {
+	// 		continue
+	// 	}
+
+	// 	if xPos < yPos {
+	// 		return -1
+	// 	} else if xPos == yPos && xSite < ySite {
+	// 		return -1
+	// 	} else {
+	// 		return 1
+	// 	}
+
+	// }
+
+	// if len(x) < len(y) {
+	// 	return -1
+	// }
 
 	return 0
 }
