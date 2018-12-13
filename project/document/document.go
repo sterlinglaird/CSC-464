@@ -10,8 +10,6 @@ type Document struct {
 	site  int
 }
 
-//@TODO add vector clock support for unique sites
-//@TODO the start and end lines should be abstracted away more. User shouldnt be aware at all of them. Currently you can move to them just not delete, maybe start with an initial line?
 //@TODO Maybe only use tombstone/site id for deleted positions instead of actually deleting them
 //@TODO breaks when commas,periods,brackets etc appear in text
 
@@ -23,14 +21,11 @@ func (this *Document) GetLineIndex(pos []Position) (int, bool) {
 
 	for {
 		if len(linesToLook) == 0 {
-			//fmt.Println("ended")
-			//fmt.Printf("Returned idx to: %s\n", ToString(this.lines[toMidpoint].Pos))
 			return toMidpoint, false
 		}
 
 		midpoint := len(linesToLook) / 2
 
-		//fmt.Printf("mid:%d toMid:%d\n", midpoint, toMidpoint)
 		posCompare := Compare(pos, linesToLook[midpoint].Pos)
 		if posCompare < 0 {
 			linesToLook = linesToLook[0:midpoint]
@@ -48,14 +43,11 @@ func NewDocument(site int) Document {
 	return doc
 }
 
-//@TODO Should this be public?
 func (this *Document) Insert(pos []Position, content string) (err error) {
-	//fmt.Printf("Input to Insert() got %s and '%s'\n", ToString(pos), content)
 	if lineIdx, exists := this.GetLineIndex(pos); !exists {
 		this.lines = append(this.lines, Line{})
 		copy(this.lines[lineIdx+1:], this.lines[lineIdx:])
 		this.lines[lineIdx] = Line{pos, content}
-		//fmt.Printf("Now %s\n", this.ToString())
 		this.site++
 		return
 	}
@@ -65,7 +57,6 @@ func (this *Document) Insert(pos []Position, content string) (err error) {
 }
 
 func (this *Document) InsertRight(pos []Position, content string) (newPos []Position, err error) {
-	//fmt.Printf("Input to InsertRight() got %s and '%s'\n", ToString(pos), content)
 	rightPos, err := this.Move(pos, 1)
 	if err != nil {
 		return
@@ -82,7 +73,6 @@ func (this *Document) InsertRight(pos []Position, content string) (newPos []Posi
 }
 
 func (this *Document) InsertLeft(pos []Position, content string) (newPos []Position, err error) {
-	//fmt.Printf("Input to InsertLeft() got %s and '%s'\n", ToString(pos), content)
 	leftPos, err := this.Move(pos, -1)
 	if err != nil {
 		return
@@ -98,7 +88,6 @@ func (this *Document) InsertLeft(pos []Position, content string) (newPos []Posit
 }
 
 func (this *Document) Delete(pos []Position) (err error) {
-	//fmt.Printf("Input to Delete() got %s\n", ToString(pos))
 	if lineIdx, exists := this.GetLineIndex(pos); exists {
 		if lineIdx == 0 || lineIdx == len(this.lines)-1 {
 			err = fmt.Errorf("Input to Delete() cannot be deleted. Got %s", ToString(pos))
@@ -107,7 +96,6 @@ func (this *Document) Delete(pos []Position) (err error) {
 
 		copy(this.lines[lineIdx:], this.lines[lineIdx+1:])
 		this.lines = this.lines[:len(this.lines)-1]
-		//fmt.Printf("Now %s\n", this.ToString())
 		this.site++
 		return
 	}
@@ -136,7 +124,6 @@ func (this *Document) DeleteLeft(pos []Position) (err error) {
 
 //Returns a moved position based on numMove. Positive is right neg is left. Based on input position
 func (this *Document) Move(pos []Position, moveAmount int) (newPos []Position, err error) {
-	//log.Printf("Input to Move() got %s and %d\n", ToString(pos), moveAmount)
 	if lineIdx, exists := this.GetLineIndex(pos); exists {
 		if lineIdx+moveAmount < len(this.lines) && lineIdx+moveAmount >= 0 {
 			newPos = this.lines[lineIdx+moveAmount].Pos
@@ -153,7 +140,6 @@ func (this *Document) Move(pos []Position, moveAmount int) (newPos []Position, e
 }
 
 func (this *Document) MoveRight(pos []Position) (newPos []Position, err error) {
-	//fmt.Printf("Input to MoveRight() got %s\n", ToString(pos))
 	if lineIdx, exists := this.GetLineIndex(pos); exists {
 		if lineIdx+1 < len(this.lines) {
 			newPos, err = GeneratePositionBetween(pos, this.lines[lineIdx+1].Pos, this.site)
@@ -169,7 +155,6 @@ func (this *Document) MoveRight(pos []Position) (newPos []Position, err error) {
 }
 
 func (this *Document) MoveLeft(pos []Position) (newPos []Position, err error) {
-	//fmt.Printf("Input to MoveLeft() got %s\n", ToString(pos))
 	if lineIdx, exists := this.GetLineIndex(pos); exists {
 		if lineIdx-1 < len(this.lines) {
 			newPos, err = GeneratePositionBetween(pos, this.lines[lineIdx-1].Pos, this.site)

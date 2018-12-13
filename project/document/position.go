@@ -20,11 +20,8 @@ var (
 	EndPos   = []Position{{math.MaxUint8, 0}}
 )
 
-//@TODO should probaly seed rand so that things are consistent
-
 //Random number between x and y non inclusive on both ends (x,y)
 func randBetween(x int, y int) int {
-	//fmt.Printf("%d %d\n", x, y)
 	return int(rand.Intn(int(y-x-1)) + int(x) + 1)
 }
 
@@ -38,68 +35,63 @@ func min(x int, y int) int {
 
 //Returns 1 if x > y  -1 if x < y, and 0 if x = y
 func Compare(x []Position, y []Position) int {
-	for idx := range x {
-		if len(y) == idx {
-			return 1
-		}
-
-		xPos := x[idx].posId
-		yPos := y[idx].posId
-
-		if xPos > yPos {
-			return 1
-		} else if xPos < yPos {
-			return -1
-		}
-	}
-
-	if len(x) < len(y) {
-		return -1
-	}
-
-	// fmt.Printf("%s %s\n", ToString(x), ToString(y))
-
 	// for idx := range x {
-	// 	if idx == len(y) {
+	// 	if len(y) == idx {
 	// 		return 1
 	// 	}
 
 	// 	xPos := x[idx].posId
 	// 	yPos := y[idx].posId
 
-	// 	xSite := x[idx].site
-	// 	ySite := y[idx].site
-
-	// 	if xPos == yPos && xSite == ySite {
-	// 		continue
-	// 	}
-
-	// 	if xPos < yPos {
-	// 		return -1
-	// 	} else if xPos == yPos && xSite < ySite {
-	// 		return -1
-	// 	} else {
+	// 	if xPos > yPos {
 	// 		return 1
+	// 	} else if xPos < yPos {
+	// 		return -1
 	// 	}
-
 	// }
 
 	// if len(x) < len(y) {
 	// 	return -1
 	// }
 
+	// fmt.Printf("%s %s\n", ToString(x), ToString(y))
+
+	for idx := range x {
+		if idx == len(y) {
+			return 1
+		}
+
+		xPos := x[idx].posId
+		yPos := y[idx].posId
+
+		xSite := x[idx].site
+		ySite := y[idx].site
+
+		if xPos == yPos && xSite == ySite {
+			continue
+		}
+
+		if xPos < yPos {
+			return -1
+		} else if xPos == yPos && xSite < ySite {
+			return -1
+		} else {
+			return 1
+		}
+
+	}
+
+	if len(x) < len(y) {
+		return -1
+	}
+
 	return 0
 }
 
 //According the definitions given the paper
-//Edge cases galore
-//@TODO make this function nicer and add comments, I had to make a couple hotfixes so it has a number of edge cases
-//@TODO also need to handle other edge cases of over/underflow of digits
 //@TODO make sure I am assigning the sites correctly, I need to read that part of paper more
 func GeneratePositionBetween(l []Position, r []Position, site int) (pos []Position, err error) {
 	//@TODO verify l < r
-
-	//fmt.Printf("GeneratePositionBetween %s %s\n", ToString(l), ToString(r))
 
 	diffenceLen := len(r) - len(l)
 	smallestLen := min(len(r), len(l))
@@ -119,7 +111,6 @@ func GeneratePositionBetween(l []Position, r []Position, site int) (pos []Positi
 			pos = append(pos, Position{rPos.posId, rPos.site})
 			addFinalDigit = true
 		} else if difference == 1 {
-			//pos = append(pos, Position{lPos.posId, lPos.site})
 			if idx < len(l)-1 {
 				pos = append(pos, Position{lPos.posId, lPos.site})
 				addFinalDigit = true
@@ -130,7 +121,6 @@ func GeneratePositionBetween(l []Position, r []Position, site int) (pos []Positi
 				addFinalDigit = false
 			}
 		} else if difference > 1 {
-			//pos = append(pos, Position{lPos.posId, lPos.site})
 			if idx < len(l)-1 {
 				pos = append(pos, Position{lPos.posId, lPos.site})
 				addFinalDigit = true

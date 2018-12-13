@@ -129,12 +129,9 @@ func fuzzInsertDelete() (err error) {
 		fmt.Printf("Error: %s\n", err.Error())
 	}
 
-	//fmt.Println(groundTruth)
-
 	lowIdx := 0
 	highIdx := 1
 	currIdx := 1
-	//addIdx := currIdx
 
 	for idx := 0; idx < 1000; idx++ {
 		//Do insert and delete randomly, but always insert if we cant delete
@@ -145,9 +142,6 @@ func fuzzInsertDelete() (err error) {
 			for addIdx == currIdx {
 				addIdx = randBetween(lowIdx, highIdx)
 			}
-
-			//fmt.Printf("Add at: %d\n", addIdx)
-			//fmt.Printf("Currently at: %d\n", currIdx)
 
 			//Ground truth
 			groundTruth = addAt(groundTruth, char, addIdx)
@@ -172,9 +166,6 @@ func fuzzInsertDelete() (err error) {
 				delIdx = randBetween(lowIdx, highIdx-1)
 			}
 
-			//fmt.Printf("Delete at: %d\n", delIdx)
-			//fmt.Printf("Currently at: %d\n", currIdx)
-
 			//Ground truth
 			groundTruth = delAt(groundTruth, delIdx)
 
@@ -191,8 +182,6 @@ func fuzzInsertDelete() (err error) {
 			currIdx = delIdx
 			highIdx -= 1
 		}
-
-		//fmt.Println(groundTruth)
 
 		testResult, _ := doc.GetContent()
 

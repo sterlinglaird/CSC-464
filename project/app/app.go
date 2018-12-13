@@ -34,7 +34,7 @@ func render() {
 	if currentIdx == 0 {
 		termbox.SetCursor(0, 0)
 	}
-	//fmt.Println(width)
+
 	for idx := range runes {
 		ch := runes[idx]
 
@@ -54,7 +54,6 @@ func render() {
 
 		//When currentIdx is at the end it is beyond the range of displayed runes because of the empty string at EndPos
 		if idx == currentIdx-1 {
-			//fmt.Println("here")
 			termbox.SetCursor(currX, currY)
 		}
 	}
@@ -68,8 +67,6 @@ func runUi() {
 		panic(err)
 	}
 	defer termbox.Close()
-
-	//width, _ := termbox.Size() //@TODO should deal with height
 
 	for {
 
@@ -103,15 +100,6 @@ func runUi() {
 			if currentIdx < contentSize-2 { //-2 for the Start and End Pos
 				currentPos, err = doc.Move(currentPos, 1)
 			}
-		// case e.Key == termbox.KeyArrowUp:
-		// 	toMove := currentIdx % width
-		// 	if currentIdx-width > 0 {
-		// 		currentPos, err = doc.Move(currentPos, -toMove)
-		// 	}
-		// case e.Key == termbox.KeyArrowDown:
-		// 	if currentIdx+width < contentSize {
-		// 		currentPos, _ = doc.Move(currentPos, +width)
-		// 	}
 		case e.Key == termbox.KeyEnter:
 			//To do this we need to change the delimeter for the messages
 			insertChar('\n')
@@ -161,13 +149,6 @@ func listen(listenPort string) {
 
 		numChars, _ := doc.GetLength()
 		numChars -= 2
-
-		// for idx := 1; idx < numChars; idx++ {
-		// 	newLine := doc.GetLine(idx)
-		// 	toSendBytes := append([]byte{1}, newLine.ToBytes()...) //1 means insert
-
-		// 	connection.Write(toSendBytes)
-		// }
 
 		go handleConnection(connection)
 	}
